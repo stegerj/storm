@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -82,6 +83,9 @@ fun WeatherScreen(
                         message = (uiState as WeatherUiState.Error).message,
                         onRetry = {
                             viewModel.fetchWeatherWithCurrentLocation()
+                        },
+                        onUseDefaultLocation = {
+                            viewModel.fetchWeatherWithDefaultLocation()
                         }
                     )
                 }
@@ -148,7 +152,8 @@ fun PermissionRequestContent(
 @Composable
 fun ErrorContent(
     message: String,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onUseDefaultLocation: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -169,8 +174,24 @@ fun ErrorContent(
             style = MaterialTheme.typography.bodyMedium
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onRetry) {
-            Text("Retry")
+        
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(onClick = onRetry) {
+                Text("Retry")
+            }
+            
+            if (message.contains("location", ignoreCase = true)) {
+                Button(
+                    onClick = onUseDefaultLocation,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text("Use Default Location")
+                }
+            }
         }
     }
 }

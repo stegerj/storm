@@ -16,6 +16,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,16 +28,48 @@ class LocationManager @Inject constructor(
         LocationServices.getFusedLocationProviderClient(context)
     
     /**
-     * Get the last known location
+     * Get the last known location with fallback mechanisms
      */
     suspend fun getLastKnownLocation(): Location? {
         return if (hasLocationPermission()) {
             try {
-                fusedLocationClient.lastLocation.await()
+                // Try to get last known location first
+                val lastLocation = fusedLocationClient.lastLocation.await()
+                if (lastLocation != null && lastLocation.latitude != 0.0 && lastLocation.longitude != 0.0) {
+                    return lastLocation
+                }
+                
+                // If last location is null or invalid, try to get current location
+                getCurrentLocation()
             } catch (e: Exception) {
-                null
+                // Log error and try alternative method
+                try {
+                    getCurrentLocation()
+                } catch (e2: Exception) {
+                    null
+                }
             }
         } else {
+            null
+        }
+    }
+    
+    /**
+     * Get current location using requestLocationUpdates with timeout
+     */
+    private suspend fun getCurrentLocation(): Location? {
+        return try {
+            val locationRequest = LocationRequest.Builder(
+                Priority.PRIORITY_HIGH_ACCURACY,
+                3000 // 3 seconds interval
+            )
+                .setMinUpdateIntervalMillis(1000) // 1 second min
+                .setMaxUpdates(1) // Only need one update
+                .build()
+            
+            val locationFlow = getLocationUpdates(3000)
+            locationFlow.firstOrNull()
+        } catch (e: Exception) {
             null
         }
     }

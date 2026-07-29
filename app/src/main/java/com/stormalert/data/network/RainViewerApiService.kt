@@ -11,7 +11,7 @@ interface RainViewerApiService {
      * Documentation: https://www.rainviewer.com/api.html
      */
     @GET("api/maps.json")
-    suspend fun getRadarMaps(): Response<RadarMapsResponse>
+    suspend fun getRadarMaps(): Response<List<RadarMapsResponse>>
     
     companion object {
         const val BASE_URL = "https://tilecache.rainviewer.com/"

@@ -41,12 +41,17 @@ class RadarRepository @Inject constructor(
             val response = rainViewerApiService.getRadarMaps()
             
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                val mapsList = response.body()!!
+                if (mapsList.isNotEmpty()) {
+                    Result.success(mapsList[0]) // Use the first map in the list
+                } else {
+                    Result.failure(Exception("No radar maps available"))
+                }
             } else {
                 Result.failure(Exception("Failed to fetch radar maps: ${response.code()}"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("Network error: ${e.message}"))
         }
     }
     

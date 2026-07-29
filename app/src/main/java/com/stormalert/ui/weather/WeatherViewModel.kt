@@ -49,11 +49,15 @@ class WeatherViewModel @Inject constructor(
             if (location != null) {
                 fetchWeather(location.latitude, location.longitude)
             } else {
-                // Fallback to a default location (Oslo, Norway) if location fails
-                // This ensures the app works even if location services are disabled
-                fetchWeather(59.91, 10.75)
+                // Try with manual location input or show helpful error
+                _uiState.value = WeatherUiState.Error("Could not get your location. Please ensure location services are enabled and you've granted location permissions to the app.")
             }
         }
+    }
+    
+    fun fetchWeatherWithDefaultLocation() {
+        // Fallback method with known coordinates
+        fetchWeather(59.91, 10.75) // Oslo, Norway
     }
     
     fun checkStormAlert() {
