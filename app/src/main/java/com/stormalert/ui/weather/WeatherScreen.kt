@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -27,8 +26,6 @@ import kotlinx.coroutines.launch
 fun WeatherScreen(
     viewModel: WeatherViewModel
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
     val stormRisk by viewModel.stormRisk.collectAsState()
     
