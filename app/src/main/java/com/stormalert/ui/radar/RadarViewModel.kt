@@ -10,12 +10,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed class RadarUiState {
-    object Loading : RadarUiState()
-    data class Success(val imageUrl: String) : RadarUiState()
-    data class Error(val message: String) : RadarUiState()
-}
-
 @HiltViewModel
 class RadarViewModel @Inject constructor(
     private val radarRepository: RadarRepository
@@ -66,4 +60,10 @@ class RadarViewModel @Inject constructor(
             )
         }
     }
+}
+
+sealed class RadarUiState {
+    object Loading : RadarUiState()
+    data class Success(val imageUrl: String) : RadarUiState()
+    data class Error(val message: String) : RadarUiState()
 }
