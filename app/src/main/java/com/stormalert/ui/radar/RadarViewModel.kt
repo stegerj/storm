@@ -28,12 +28,14 @@ class RadarViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = RadarUiState.Loading
             
+            // Try MET Norway first, fall back to RainViewer
             radarRepository.getLatestRadarImage(area).fold(
                 onSuccess = { imageUrl ->
                     _uiState.value = RadarUiState.Success(imageUrl)
                 },
                 onFailure = { error ->
-                    _uiState.value = RadarUiState.Error(error.message ?: "Unknown error")
+                    // Fall back to RainViewer
+                    loadRainViewerMaps()
                 }
             )
         }
@@ -59,7 +61,7 @@ class RadarViewModel @Inject constructor(
                     }
                 },
                 onFailure = { error ->
-                    _uiState.value = RadarUiState.Error(error.message ?: "Unknown error")
+                    _uiState.value = RadarUiState.Error("Maps error: ${error.message}")
                 }
             )
         }

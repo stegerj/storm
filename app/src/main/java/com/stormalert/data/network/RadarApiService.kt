@@ -26,5 +26,8 @@ interface RadarApiService {
 data class RadarResponse(
     val uri: String? = null,
     val created: String? = null,
-    val expires: String? = null
+    val expires: String? = null,
+    val area: String? = null,
+    val type: String? = null,
+    val time: String? = null
 )

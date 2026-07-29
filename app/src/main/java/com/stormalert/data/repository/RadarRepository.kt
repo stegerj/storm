@@ -18,13 +18,18 @@ class RadarRepository @Inject constructor(
         return try {
             val response = radarApiService.getRadarImage(area = area)
             
-            if (response.isSuccessful && response.body()?.uri != null) {
-                Result.success(response.body()!!.uri!!)
+            if (response.isSuccessful) {
+                val responseBody = response.body()
+                if (responseBody != null && responseBody.uri != null) {
+                    Result.success(responseBody.uri!!)
+                } else {
+                    Result.failure(Exception("No URI in response: ${responseBody}"))
+                }
             } else {
-                Result.failure(Exception("Failed to fetch radar image: ${response.code()}"))
+                Result.failure(Exception("Failed to fetch radar image: ${response.code()} - ${response.message()}"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("Network error: ${e.message}"))
         }
     }
     

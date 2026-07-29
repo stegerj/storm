@@ -32,11 +32,31 @@ class LocationManager @Inject constructor(
     suspend fun getLastKnownLocation(): Location? {
         return if (hasLocationPermission()) {
             try {
-                fusedLocationClient.lastLocation.await()
+                val location = fusedLocationClient.lastLocation.await()
+                if (location == null) {
+                    // Try requesting a fresh location
+                    requestSingleLocationUpdate()
+                } else {
+                    location
+                }
             } catch (e: Exception) {
                 null
             }
         } else {
+            null
+        }
+    }
+    
+    private suspend fun requestSingleLocationUpdate(): Location? {
+        return try {
+            val locationRequest = LocationRequest.Builder(
+                Priority.PRIORITY_HIGH_ACCURACY,
+                10000 // 10 seconds timeout
+            ).build()
+            
+            val locationResult = fusedLocationClient.getCurrentLocation(locationRequest)
+            Tasks.await(locationResult)
+        } catch (e: Exception) {
             null
         }
     }
@@ -52,7 +72,7 @@ class LocationManager @Inject constructor(
             }
             
             val locationRequest = LocationRequest.Builder(
-                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                Priority.PRIORITY_HIGH_ACCURACY,
                 intervalMillis
             )
                 .setMinUpdateIntervalMillis(intervalMillis / 2)
