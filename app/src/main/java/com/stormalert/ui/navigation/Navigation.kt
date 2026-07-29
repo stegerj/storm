@@ -68,7 +68,7 @@ fun StormAlertNavigation(
                 }
             }
         }
-    ) { paddingValues ->
+    ) { _ ->
         NavHost(
             navController = navController,
             startDestination = Screen.Weather.route,

@@ -15,6 +15,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -38,6 +39,7 @@ object AppModule {
     
     @Provides
     @Singleton
+    @Named("WeatherRetrofit")
     fun provideWeatherRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl(WeatherApiService.BASE_URL)
@@ -48,6 +50,7 @@ object AppModule {
     
     @Provides
     @Singleton
+    @Named("RadarRetrofit")
     fun provideRadarRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl(RadarApiService.BASE_URL)
@@ -58,6 +61,7 @@ object AppModule {
     
     @Provides
     @Singleton
+    @Named("RainViewerRetrofit")
     fun provideRainViewerRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl(RainViewerApiService.BASE_URL)
@@ -68,19 +72,19 @@ object AppModule {
     
     @Provides
     @Singleton
-    fun provideWeatherApiService(weatherRetrofit: Retrofit): WeatherApiService {
+    fun provideWeatherApiService(@Named("WeatherRetrofit") weatherRetrofit: Retrofit): WeatherApiService {
         return weatherRetrofit.create(WeatherApiService::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideRadarApiService(radarRetrofit: Retrofit): RadarApiService {
+    fun provideRadarApiService(@Named("RadarRetrofit") radarRetrofit: Retrofit): RadarApiService {
         return radarRetrofit.create(RadarApiService::class.java)
     }
     
     @Provides
     @Singleton
-    fun provideRainViewerApiService(rainViewerRetrofit: Retrofit): RainViewerApiService {
+    fun provideRainViewerApiService(@Named("RainViewerRetrofit") rainViewerRetrofit: Retrofit): RainViewerApiService {
         return rainViewerRetrofit.create(RainViewerApiService::class.java)
     }
     
