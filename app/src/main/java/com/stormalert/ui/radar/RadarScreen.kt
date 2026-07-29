@@ -11,6 +11,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import com.stormalert.ui.radar.RadarUiState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RadarScreen(
     viewModel: RadarViewModel = hiltViewModel()
@@ -53,7 +54,7 @@ fun RadarScreen(
                         painter = rememberAsyncImagePainter(imageUrl),
                         contentDescription = "Weather Radar",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.FitWidth
+                        contentScale = ContentScale.Fit
                     )
                 }
             }

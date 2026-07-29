@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -17,9 +18,13 @@ import androidx.navigation.compose.rememberNavController
 import com.stormalert.ui.radar.RadarScreen
 import com.stormalert.ui.settings.SettingsScreen
 import com.stormalert.ui.weather.WeatherScreen
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.stormalert.ui.weather.WeatherViewModel
+
+data class BottomNavItem(
+    val screen: Screen,
+    val title: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
 
 sealed class Screen(val route: String) {
     object Weather : Screen("weather")
@@ -27,17 +32,16 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun StormAlertNavigation(
     weatherViewModel: WeatherViewModel
 ) {
     val navController = rememberNavController()
-    val permissionsState = rememberMultiplePermissionsState(
-        permissions = listOf(
-            android.Manifest.permission.ACCESS_FINE_LOCATION,
-            android.Manifest.permission.ACCESS_COARSE_LOCATION
-        )
+    
+    val bottomNavItems = listOf(
+        BottomNavItem(Screen.Weather, "Weather", Icons.Default.Home),
+        BottomNavItem(Screen.Radar, "Radar", Icons.Default.Map),
+        BottomNavItem(Screen.Settings, "Settings", Icons.Default.Settings)
     )
     
     Scaffold(
@@ -46,17 +50,13 @@ fun StormAlertNavigation(
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
                 
-                listOf(
-                    Screen.Weather to "Weather" to Icons.Default.Home,
-                    Screen.Radar to "Radar" to Icons.Default.Map,
-                    Screen.Settings to "Settings" to Icons.Default.Settings
-                ).forEach { (screen, title, icon) ->
+                bottomNavItems.forEach { item ->
                     NavigationBarItem(
-                        icon = { Icon(icon, contentDescription = title) },
-                        label = { Text(title) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                        icon = { androidx.compose.material3.Icon(item.icon, contentDescription = item.title) },
+                        label = { androidx.compose.material3.Text(item.title) },
+                        selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true,
                         onClick = {
-                            navController.navigate(screen.route) {
+                            navController.navigate(item.screen.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
@@ -76,8 +76,7 @@ fun StormAlertNavigation(
         ) {
             composable(Screen.Weather.route) {
                 WeatherScreen(
-                    viewModel = weatherViewModel,
-                    permissionsState = permissionsState
+                    viewModel = weatherViewModel
                 )
             }
             composable(Screen.Radar.route) {

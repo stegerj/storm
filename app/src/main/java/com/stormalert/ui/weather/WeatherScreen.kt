@@ -17,11 +17,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.accompanist.permissions.shouldShowRationale
 import com.stormalert.data.model.getWeatherCondition
 import com.stormalert.data.repository.StormRisk
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(
     viewModel: WeatherViewModel
@@ -67,7 +68,9 @@ fun WeatherScreen(
             when {
                 !permissionsState.allPermissionsGranted -> {
                     PermissionRequestContent(
-                        onRequestPermission = { permissionsState.launchMultiplePermissionRequests() }
+                        onRequestPermission = { 
+                            permissionsState.launchMultiplePermissionRequests()
+                        }
                     )
                 }
                 
