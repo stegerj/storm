@@ -11,6 +11,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.android.gms.location.CurrentLocationRequest
 import com.google.android.gms.tasks.Tasks
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -32,31 +33,11 @@ class LocationManager @Inject constructor(
     suspend fun getLastKnownLocation(): Location? {
         return if (hasLocationPermission()) {
             try {
-                val location = fusedLocationClient.lastLocation.await()
-                if (location == null) {
-                    // Try requesting a fresh location
-                    requestSingleLocationUpdate()
-                } else {
-                    location
-                }
+                fusedLocationClient.lastLocation.await()
             } catch (e: Exception) {
                 null
             }
         } else {
-            null
-        }
-    }
-    
-    private suspend fun requestSingleLocationUpdate(): Location? {
-        return try {
-            val locationRequest = LocationRequest.Builder(
-                Priority.PRIORITY_HIGH_ACCURACY,
-                10000 // 10 seconds timeout
-            ).build()
-            
-            val locationResult = fusedLocationClient.getCurrentLocation(locationRequest)
-            Tasks.await(locationResult)
-        } catch (e: Exception) {
             null
         }
     }
