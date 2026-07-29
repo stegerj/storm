@@ -72,7 +72,7 @@ fun StormAlertNavigation(
         NavHost(
             navController = navController,
             startDestination = Screen.Weather.route,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier
         ) {
             composable(Screen.Weather.route) {
                 WeatherScreen(
