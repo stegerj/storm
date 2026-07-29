@@ -64,7 +64,6 @@ class LocationManager @Inject constructor(
                 3000 // 3 seconds interval
             )
                 .setMinUpdateIntervalMillis(1000) // 1 second min
-                .setMaxUpdates(1) // Only need one update
                 .build()
             
             val locationFlow = getLocationUpdates(3000)
