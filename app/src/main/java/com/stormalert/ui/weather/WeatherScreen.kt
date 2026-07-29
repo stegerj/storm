@@ -69,7 +69,7 @@ fun WeatherScreen(
                 !permissionsState.allPermissionsGranted -> {
                     PermissionRequestContent(
                         onRequestPermission = { 
-                            permissionsState.launchMultiplePermissionRequests()
+                            permissionsState.launchMultiplePermissionRequest()
                         }
                     )
                 }

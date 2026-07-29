@@ -8,7 +8,6 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.stormalert.R
 import com.stormalert.data.repository.StormRisk
 import com.stormalert.ui.MainActivity
 import dagger.hilt.android.qualifiers.ApplicationContext

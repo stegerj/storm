@@ -10,7 +10,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.stormalert.R
 import com.stormalert.data.repository.WeatherRepository
 import com.stormalert.location.LocationManager
 import com.stormalert.notification.StormNotificationManager
