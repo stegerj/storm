@@ -134,6 +134,7 @@ async def predict_storm(
         storm_risk = analyze_weather_risk(weather_data)
         
         # Add radar analysis if requested
+        radar_image = None
         if request.include_radar:
             radar_intensity = await analyze_radar_intensity(
                 request.latitude,
@@ -167,6 +168,16 @@ async def predict_storm(
                             storm_risk.is_storm_approaching = current_analysis.is_approaching
                             if current_analysis.time_to_impact != float('inf'):
                                 storm_risk.estimated_time_to_storm = int(current_analysis.time_to_impact)
+                    
+                    # Generate radar image with overlays if requested
+                    if request.include_radar_image:
+                        async with RadarService() as radar_service:
+                            radar_image = await radar_service.generate_radar_image_with_overlays(
+                                request.latitude,
+                                request.longitude,
+                                movement_data,
+                                request.overlay_mode
+                            )
         
         processing_time = (time.time() - start_time) * 1000
         
@@ -193,6 +204,7 @@ async def predict_storm(
             timestamp=datetime.utcnow().isoformat(),
             storm_risk=storm_risk,
             processing_time_ms=processing_time,
+            radar_image=radar_image,
             api_version=settings.app_version
         )
         
