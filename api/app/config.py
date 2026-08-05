@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     
     # External APIs
     open_meteo_url: str = "https://api.open-meteo.com/v1"
+    openweathermap_url: str = "https://api.openweathermap.org/data/2.5"
+    openweathermap_api_key: str = ""  # Set via environment variable
     rainviewer_url: str = "https://api.rainviewer.com"
     rainviewer_host: str = "https://tilecache.rainviewer.com"
     
@@ -41,7 +43,7 @@ class Settings(BaseSettings):
     max_reasonable_velocity: float = 50.0
     
     # Caching
-    cache_ttl_seconds: int = 300  # 5 minutes
+    cache_ttl_seconds: int = 1800  # 30 minutes to reduce API calls
     cache_max_size: int = 1000
     
     # Logging

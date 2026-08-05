@@ -33,7 +33,7 @@ class WeatherService:
         latitude: float, 
         longitude: float
     ) -> Dict[str, Any]:
-        """Fetch current weather from Open-Meteo API with caching and retry logic"""
+        """Fetch current weather with multiple API fallbacks"""
         cache_key = f"{latitude:.2f},{longitude:.2f}"
         
         # Check cache first
@@ -43,55 +43,90 @@ class WeatherService:
                 logger.info("weather_cache_hit", lat=latitude, lon=longitude)
                 return cached_data
         
-        # Fetch from API with retry logic
-        max_retries = 3
-        base_delay = 2.0
+        # Try Open-Meteo first
+        try:
+            data = await self._fetch_from_open_meteo(latitude, longitude)
+            if data:
+                self.cache[cache_key] = (data, time.time())
+                return data
+        except Exception as e:
+            logger.warning("open_meteo_failed", error=str(e), trying="openweathermap")
+        
+        # Fallback to OpenWeatherMap if API key is available
+        if settings.openweathermap_api_key:
+            try:
+                data = await self._fetch_from_openweathermap(latitude, longitude)
+                if data:
+                    self.cache[cache_key] = (data, time.time())
+                    logger.info("weather_fallback_success", provider="openweathermap")
+                    return data
+            except Exception as e:
+                logger.warning("openweathermap_failed", error=str(e))
+        
+        # Final fallback to default data
+        logger.warning("all_apis_failed", using="default_data")
+        return self._get_default_weather_data(latitude, longitude)
+    
+    async def _fetch_from_open_meteo(self, latitude: float, longitude: float) -> Optional[Dict[str, Any]]:
+        """Fetch from Open-Meteo with retry logic"""
+        max_retries = 2
+        base_delay = 1.0
         
         for attempt in range(max_retries):
             try:
-                # Use minimal parameters that are known to work
                 params = {
                     "latitude": latitude,
                     "longitude": longitude,
                     "current_weather": "true"
                 }
                 
-                logger.info("fetching_weather", lat=latitude, lon=longitude, attempt=attempt+1)
+                logger.info("fetching_open_meteo", lat=latitude, lon=longitude, attempt=attempt+1)
                 
                 response = await self.client.get(
                     f"{self.base_url}/forecast",
                     params=params
                 )
-                logger.info("weather_response_status", status=response.status_code)
                 
                 if response.status_code == 429:
-                    # Rate limited - wait and retry
                     delay = base_delay * (2 ** attempt)
-                    logger.warning("rate_limited", delay=delay, attempt=attempt+1)
+                    logger.warning("open_meteo_rate_limited", delay=delay)
                     await asyncio.sleep(delay)
                     continue
                 
                 response.raise_for_status()
-                
                 data = response.json()
-                parsed_data = self._parse_weather_response(data)
-                
-                # Cache the result
-                self.cache[cache_key] = (parsed_data, time.time())
-                logger.info("weather_fetched_success", lat=latitude, lon=longitude)
-                
-                return parsed_data
+                return self._parse_weather_response(data)
                 
             except httpx.HTTPError as e:
                 if attempt == max_retries - 1:
-                    logger.error("weather_fetch_error", error=str(e), lat=latitude, lon=longitude)
-                    # Return default data instead of raising
-                    return self._get_default_weather_data(latitude, longitude)
+                    raise
                 await asyncio.sleep(base_delay * (2 ** attempt))
-            except Exception as e:
-                logger.error("weather_parse_error", error=str(e))
-                # Return default data instead of raising
-                return self._get_default_weather_data(latitude, longitude)
+        
+        return None
+    
+    async def _fetch_from_openweathermap(self, latitude: float, longitude: float) -> Optional[Dict[str, Any]]:
+        """Fetch from OpenWeatherMap as fallback"""
+        try:
+            params = {
+                "lat": latitude,
+                "lon": longitude,
+                "appid": settings.openweathermap_api_key,
+                "units": "metric"
+            }
+            
+            logger.info("fetching_openweathermap", lat=latitude, lon=longitude)
+            
+            response = await self.client.get(
+                f"{settings.openweathermap_url}/weather",
+                params=params
+            )
+            response.raise_for_status()
+            data = response.json()
+            return self._parse_openweathermap_response(data)
+            
+        except Exception as e:
+            logger.error("openweathermap_error", error=str(e))
+            return None
     
     def _get_default_weather_data(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """Return default weather data when API fails"""
@@ -138,6 +173,46 @@ class WeatherService:
                 "precipitation": hourly.get("precipitation", [])[:6],
                 "wind_speed": hourly.get("windspeed_10m", [])[:6],
                 "wind_gusts": hourly.get("windgusts_10m", [])[:6]
+            }
+        }
+    
+    def _parse_openweathermap_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Parse OpenWeatherMap API response to match our format"""
+        main = data.get("main", {})
+        wind = data.get("wind", {})
+        weather = data.get("weather", [{}])[0]
+        
+        # Convert OpenWeatherMap weather code to WMO code
+        owm_to_wmo = {
+            "Clear": 0,
+            "Clouds": 1,
+            "Rain": 61,
+            "Drizzle": 51,
+            "Thunderstorm": 95,
+            "Snow": 71,
+            "Mist": 45,
+            "Fog": 45
+        }
+        
+        weather_code = owm_to_wmo.get(weather.get("main", "Clear"), 0)
+        
+        return {
+            "latitude": data.get("coord", {}).get("lat"),
+            "longitude": data.get("coord", {}).get("lon"),
+            "current_weather": {
+                "temperature": main.get("temp", 20.0),
+                "wind_speed": wind.get("speed", 10.0),
+                "wind_direction": wind.get("deg", 180.0),
+                "weather_code": weather_code,
+                "time": datetime.utcnow().isoformat()
+            },
+            "hourly": {
+                "time": [],
+                "temperature": [main.get("temp", 20.0)] * 6,
+                "precipitation_probability": [0] * 6,
+                "precipitation": [0.0] * 6,
+                "wind_speed": [wind.get("speed", 10.0)] * 6,
+                "wind_gusts": [wind.get("gust", 15.0)] * 6
             }
         }
 
