@@ -1,6 +1,8 @@
 package com.stormalert.di
 
 import android.content.Context
+import com.stormalert.data.analysis.StormMovementAnalyzer
+import com.stormalert.data.analysis.StormRiskAnalyzer
 import com.stormalert.data.network.RadarApiService
 import com.stormalert.data.network.RainViewerApiService
 import com.stormalert.data.network.WeatherApiService
@@ -86,6 +88,18 @@ object AppModule {
     @Singleton
     fun provideRainViewerApiService(@Named("RainViewerRetrofit") rainViewerRetrofit: Retrofit): RainViewerApiService {
         return rainViewerRetrofit.create(RainViewerApiService::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideStormMovementAnalyzer(): StormMovementAnalyzer {
+        return StormMovementAnalyzer()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideStormRiskAnalyzer(): StormRiskAnalyzer {
+        return StormRiskAnalyzer()
     }
     
     @Provides
