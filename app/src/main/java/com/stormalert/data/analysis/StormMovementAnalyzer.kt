@@ -70,11 +70,11 @@ class StormMovementAnalyzer {
         val finalSpeed = selectForecastVelocity(weightedSpeed, regressionResult, directionalCorrection)
         
         // Calculate forecast positions
-        val forecast1h = Pair(finalSpeed.first * 60, finalSpeed.second * 60) // 1 hour = 60 minutes
+        val forecast1h = Pair(finalSpeed.first * 60.0, finalSpeed.second * 60.0) // 1 hour = 60 minutes
         val forecast5h = if (regressionResult != null) {
-            calculateRegressionForecast(regressionResult, stormCentroids, 300) // 5 hours = 300 minutes
+            calculateRegressionForecast(regressionResult, stormCentroids, 300.0) // 5 hours = 300 minutes
         } else {
-            Pair(finalSpeed.first * 300, finalSpeed.second * 300)
+            Pair(finalSpeed.first * 300.0, finalSpeed.second * 300.0)
         }
         
         return ForecastData(
