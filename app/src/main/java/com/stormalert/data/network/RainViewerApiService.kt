@@ -10,29 +10,28 @@ interface RainViewerApiService {
      * Get radar map tiles from RainViewer
      * Documentation: https://www.rainviewer.com/api.html
      */
-    @GET("api/maps.json")
-    suspend fun getRadarMaps(): Response<List<RadarMapsResponse>>
+    @GET("public/weather-maps.json")
+    suspend fun getRadarMaps(): Response<RadarMapsResponse>
     
     companion object {
-        const val BASE_URL = "https://tilecache.rainviewer.com/"
+        const val BASE_URL = "https://api.rainviewer.com/"
     }
 }
 
 data class RadarMapsResponse(
-    val version: Int,
+    val version: String,
     val generated: Long,
     val host: String,
-    val radar: List<RadarPast>,
-    val satellite: List<RadarPast>,
-    val future: List<RadarFuture>
+    val radar: RadarData
 )
 
-data class RadarPast(
-    val time: Long,
-    val path: String
+data class RadarData(
+    val past: List<RadarFrame>,
+    val now: RadarFrame?,
+    val future: List<RadarFrame>
 )
 
-data class RadarFuture(
+data class RadarFrame(
     val time: Long,
     val path: String
 )

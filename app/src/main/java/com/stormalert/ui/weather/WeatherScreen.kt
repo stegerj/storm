@@ -247,7 +247,7 @@ fun WeatherContent(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Storm Risk Card
+        // Storm Risk Card with enhanced information
         stormRisk?.let { risk ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -283,11 +283,47 @@ fun WeatherContent(
                     if (risk.estimatedTimeToStorm > 0) {
                         Text("Estimated time: ${risk.estimatedTimeToStorm} minutes")
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Radar Analysis: Available",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                 }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
         }
+        
+        // Radar Analysis Info Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    "Advanced Radar Features",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("• Historical storm movement analysis", style = MaterialTheme.typography.bodySmall)
+                Text("• Multi-radius risk assessment", style = MaterialTheme.typography.bodySmall)
+                Text("• 1-hour and 5-hour storm forecasts", style = MaterialTheme.typography.bodySmall)
+                Text("• Acceleration and trend detection", style = MaterialTheme.typography.bodySmall)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "View Radar tab for detailed visualization",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
         
         // Check Alerts Button
         Button(
