@@ -77,3 +77,6 @@ lint/tmp/
 
 # Di folder (temporarily removed)
 !di/
+
+#
+/python_test/radar_images/
