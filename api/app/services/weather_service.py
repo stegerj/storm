@@ -270,6 +270,8 @@ class RadarService:
     ) -> Optional[str]:
         """Generate radar image with forecast overlays, return base64 encoded"""
         try:
+            logger.info("radar_image_generation_start", lat=latitude, lon=longitude, mode=overlay_mode)
+            
             # Calculate tile coordinates for center
             zoom = settings.radar_zoom_level
             n = 2 ** zoom
@@ -277,12 +279,16 @@ class RadarService:
             lat_rad = math.radians(latitude)
             center_y = int(((1 - math.asinh(math.tan(lat_rad)) / math.pi) / 2 * n))
             
+            logger.info("tile_coordinates_calculated", center_x=center_x, center_y=center_y, zoom=zoom)
+            
             composite_size = settings.radar_tile_size * 3
             composite = Image.new('RGBA', (composite_size, composite_size))
             
-            # Layer 1: Map tiles (if requested)
-            if overlay_mode in ["map", "all"]:
+            # Layer 1: Map tiles (always include as base layer except for radar-only mode)
+            if overlay_mode in ["map", "radar", "arrows", "all"]:
+                logger.info("fetching_map_tiles")
                 map_tiles = await self._fetch_map_tiles(center_x, center_y, zoom)
+                logger.info("map_tiles_fetched", count=len(map_tiles))
                 for tile_data, dx, dy in map_tiles:
                     try:
                         tile_img = Image.open(BytesIO(tile_data))
@@ -296,13 +302,18 @@ class RadarService:
             
             # Layer 2: Radar tiles (if requested)
             if overlay_mode in ["radar", "all"]:
+                logger.info("fetching_radar_metadata")
                 metadata = await self.fetch_radar_metadata()
                 radar_data = metadata.get("radar", {})
                 now_frame = radar_data.get("now")
                 past_frames = radar_data.get("past", [])
                 
+                logger.info("radar_metadata_received", has_now=bool(now_frame), past_frames_count=len(past_frames))
+                
                 if now_frame or past_frames:
                     path = now_frame.get("path") if now_frame else past_frames[-1].get("path") if past_frames else None
+                    logger.info("radar_path_extracted", path=path)
+                    
                     if path:
                         radar_tiles = []
                         for dx in [-1, 0, 1]:
@@ -320,6 +331,8 @@ class RadarService:
                                     radar_tiles.append((tile_data, dx, dy))
                                 except Exception as e:
                                     logger.warning("radar_tile_fetch_failed", x=tile_x, y=tile_y, error=str(e))
+                        
+                        logger.info("radar_tiles_fetched", count=len(radar_tiles))
                         
                         for tile_data, dx, dy in radar_tiles:
                             try:
@@ -339,21 +352,25 @@ class RadarService:
                                 composite.paste(tile_img, (x_pos, y_pos), tile_img)
                             except Exception as e:
                                 logger.warning("radar_tile_composite_failed", dx=dx, dy=dy, error=str(e))
+                else:
+                    logger.warning("no_radar_frames_available")
             
             # Layer 3: Forecast arrows (if requested)
             if overlay_mode in ["arrows", "all"] and movement_data:
+                logger.info("drawing_forecast_overlays")
                 composite = self._draw_forecast_overlays(composite, movement_data)
             
             # Convert to base64
+            logger.info("converting_to_base64")
             buffer = BytesIO()
             composite.save(buffer, format='PNG')
             img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
             
-            logger.info("radar_image_generated", lat=latitude, lon=longitude, mode=overlay_mode)
+            logger.info("radar_image_generated", lat=latitude, lon=longitude, mode=overlay_mode, size=len(img_base64))
             return img_base64
             
         except Exception as e:
-            logger.error("radar_image_generation_failed", error=str(e))
+            logger.error("radar_image_generation_failed", error=str(e), exc_info=True)
             return None
     
     async def _fetch_map_tiles(self, center_x: int, center_y: int, zoom: int) -> List[Tuple[bytes, int, int]]:

@@ -41,11 +41,32 @@ class StormRisk:
 
 
 class StormAPIClient:
-    """Client for the Storm Alert FastAPI service"""
+    """Client for the Storm Alert FastAPI service with automatic fallback"""
     
-    def __init__(self, base_url: str = "http://localhost:8002"):
-        self.base_url = base_url
+    def __init__(self, base_url: str = None):
+        self.local_url = "http://localhost:8002"
+        self.remote_url = "https://storm-n3iw.onrender.com"
         self.api_prefix = "/api/v2"
+        
+        if base_url:
+            self.base_url = base_url
+        else:
+            self.base_url = self._detect_available_service()
+    
+    def _detect_available_service(self) -> str:
+        """Detect which service is available (local or remote)"""
+        try:
+            # Try local service first
+            response = requests.get(f"{self.local_url}{self.api_prefix}/health", timeout=2)
+            if response.status_code == 200:
+                print("✅ Using local API service")
+                return self.local_url
+        except:
+            pass
+        
+        # Fallback to remote service
+        print("ℹ️  Local service not available, using remote API")
+        return self.remote_url
     
     def predict_storm(
         self, 
@@ -304,8 +325,12 @@ def main():
     print("Calls FastAPI service for storm detection")
     print("="*70)
     
-    # Check API health
+    # Initialize client with automatic service detection
     client = StormAPIClient()
+    print(f"🔗 Using API: {client.base_url}")
+    print()
+    
+    # Check API health
     print("🔍 Checking API health...")
     health = client.health_check()
     if health:
