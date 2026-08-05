@@ -82,6 +82,17 @@ async def health_check():
     )
 
 
+@app.get("/")
+async def root():
+    """Root endpoint with API information"""
+    return {
+        "service": "Storm Alert API",
+        "version": settings.app_version,
+        "docs": f"{settings.api_prefix}/docs",
+        "health": f"{settings.api_prefix}/health"
+    }
+
+
 @app.post(
     f"{settings.api_prefix}/storm/predict",
     response_model=StormPredictionResponse,

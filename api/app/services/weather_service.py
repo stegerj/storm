@@ -4,6 +4,7 @@ import asyncio
 from typing import Optional, Dict, Any
 from datetime import datetime
 import structlog
+import time
 
 from app.config import settings
 
@@ -11,11 +12,13 @@ logger = structlog.get_logger()
 
 
 class WeatherService:
-    """Async weather data fetching service"""
+    """Async weather data fetching service with caching and rate limiting"""
     
     def __init__(self):
         self.client: Optional[httpx.AsyncClient] = None
         self.base_url = settings.open_meteo_url
+        self.cache: Dict[str, tuple] = {}  # Simple in-memory cache
+        self.cache_ttl = settings.cache_ttl_seconds
     
     async def __aenter__(self):
         self.client = httpx.AsyncClient(timeout=30.0)
@@ -30,35 +33,63 @@ class WeatherService:
         latitude: float, 
         longitude: float
     ) -> Dict[str, Any]:
-        """Fetch current weather from Open-Meteo API"""
-        try:
-            # Use minimal parameters that are known to work
-            params = {
-                "latitude": latitude,
-                "longitude": longitude,
-                "current_weather": "true"
-            }
-            
-            logger.info("fetching_weather", lat=latitude, lon=longitude)
-            
-            response = await self.client.get(
-                f"{self.base_url}/forecast",
-                params=params
-            )
-            logger.info("weather_response_status", status=response.status_code)
-            response.raise_for_status()
-            
-            data = response.json()
-            logger.info("weather_fetched_success", lat=latitude, lon=longitude)
-            
-            return self._parse_weather_response(data)
-            
-        except httpx.HTTPError as e:
-            logger.error("weather_fetch_error", error=str(e), lat=latitude, lon=longitude)
-            raise
-        except Exception as e:
-            logger.error("weather_parse_error", error=str(e))
-            raise
+        """Fetch current weather from Open-Meteo API with caching and retry logic"""
+        cache_key = f"{latitude:.2f},{longitude:.2f}"
+        
+        # Check cache first
+        if cache_key in self.cache:
+            cached_data, cached_time = self.cache[cache_key]
+            if time.time() - cached_time < self.cache_ttl:
+                logger.info("weather_cache_hit", lat=latitude, lon=longitude)
+                return cached_data
+        
+        # Fetch from API with retry logic
+        max_retries = 3
+        base_delay = 2.0
+        
+        for attempt in range(max_retries):
+            try:
+                # Use minimal parameters that are known to work
+                params = {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "current_weather": "true"
+                }
+                
+                logger.info("fetching_weather", lat=latitude, lon=longitude, attempt=attempt+1)
+                
+                response = await self.client.get(
+                    f"{self.base_url}/forecast",
+                    params=params
+                )
+                logger.info("weather_response_status", status=response.status_code)
+                
+                if response.status_code == 429:
+                    # Rate limited - wait and retry
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning("rate_limited", delay=delay, attempt=attempt+1)
+                    await asyncio.sleep(delay)
+                    continue
+                
+                response.raise_for_status()
+                
+                data = response.json()
+                parsed_data = self._parse_weather_response(data)
+                
+                # Cache the result
+                self.cache[cache_key] = (parsed_data, time.time())
+                logger.info("weather_fetched_success", lat=latitude, lon=longitude)
+                
+                return parsed_data
+                
+            except httpx.HTTPError as e:
+                if attempt == max_retries - 1:
+                    logger.error("weather_fetch_error", error=str(e), lat=latitude, lon=longitude)
+                    raise
+                await asyncio.sleep(base_delay * (2 ** attempt))
+            except Exception as e:
+                logger.error("weather_parse_error", error=str(e))
+                raise
     
     def _parse_weather_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Parse Open-Meteo API response"""
