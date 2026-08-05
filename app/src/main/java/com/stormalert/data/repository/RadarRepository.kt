@@ -104,7 +104,10 @@ class RadarRepository @Inject constructor(
         val n = 1 shl zoom
         val x = ((longitude + 180) / 360 * n).toInt()
         val latRad = Math.toRadians(latitude)
-        val y = ((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2 * n).toInt()
+        // asinh is not available in Kotlin Math, implement manually: asinh(x) = ln(x + sqrt(x^2 + 1))
+        val tanLat = Math.tan(latRad)
+        val asinhTanLat = Math.log(tanLat + Math.sqrt(tanLat * tanLat + 1))
+        val y = ((1 - asinhTanLat / Math.PI) / 2 * n).toInt()
         return Pair(x, y)
     }
 }
