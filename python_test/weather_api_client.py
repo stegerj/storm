@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""
-Storm Alert - API Client Version
+"""Storm Alert - API Client Version
 Calls the FastAPI service and recreates the output of weather_test.py
 """
 
 import requests
 import json
+import base64
+import os
 from typing import Optional, Tuple
 from datetime import datetime
 from enum import Enum
@@ -40,11 +41,32 @@ class StormRisk:
 
 
 class StormAPIClient:
-    """Client for the Storm Alert FastAPI service"""
+    """Client for the Storm Alert FastAPI service with automatic fallback"""
     
-    def __init__(self, base_url: str = "https://storm-n3iw.onrender.com"):
-        self.base_url = base_url
+    def __init__(self, base_url: str = None):
+        self.local_url = "http://localhost:8002"
+        self.remote_url = "https://storm-n3iw.onrender.com"
         self.api_prefix = "/api/v2"
+        
+        if base_url:
+            self.base_url = base_url
+        else:
+            self.base_url = self._detect_available_service()
+    
+    def _detect_available_service(self) -> str:
+        """Detect which service is available (local or remote)"""
+        try:
+            # Try local service first
+            response = requests.get(f"{self.local_url}{self.api_prefix}/health", timeout=2)
+            if response.status_code == 200:
+                print("✅ Using local API service")
+                return self.local_url
+        except:
+            pass
+        
+        # Fallback to remote service
+        print("ℹ️  Local service not available, using remote API")
+        return self.remote_url
     
     def predict_storm(
         self, 
@@ -52,6 +74,8 @@ class StormAPIClient:
         longitude: float,
         include_radar: bool = True,
         include_forecast: bool = True,
+        include_radar_image: bool = False,
+        overlay_mode: str = "radar",
         historical_frames: int = 10
     ) -> dict:
         """Call the storm prediction API"""
@@ -62,11 +86,13 @@ class StormAPIClient:
             "longitude": longitude,
             "include_radar": include_radar,
             "include_forecast": include_forecast,
+            "include_radar_image": include_radar_image,
+            "overlay_mode": overlay_mode,
             "historical_frames": historical_frames
         }
         
         try:
-            response = requests.post(url, json=payload, timeout=30)
+            response = requests.post(url, json=payload, timeout=120)  # Increased timeout for radar processing
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -170,7 +196,11 @@ def display_storm_analysis(storm_risk: StormRisk, location: Tuple[float, float])
             print(f"  Current Location:")
             print(f"    Risk Level: {current.get('risk_level', 'unknown').upper()}")
             print(f"    Distance: {current.get('distance_to_user_km', 0):.1f} km")
-            print(f"    Time to Impact: {current.get('time_to_impact', 0):.1f} min")
+            time_to_impact = current.get('time_to_impact')
+            if time_to_impact and time_to_impact != float('inf'):
+                print(f"    Time to Impact: {time_to_impact:.1f} min")
+            else:
+                print(f"    Time to Impact: N/A")
         
         if 'radius_20km' in risk:
             radius_20 = risk['radius_20km']
@@ -264,6 +294,28 @@ def get_location_from_ip() -> Optional[Tuple[float, float]]:
     return None
 
 
+def save_radar_image(base64_data: str, filename: str):
+    """Save base64 encoded radar image to file"""
+    try:
+        # Create output directory if it doesn't exist
+        output_dir = "radar_images"
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Decode base64 data
+        img_data = base64.b64decode(base64_data)
+        
+        # Save to file
+        filepath = os.path.join(output_dir, filename)
+        with open(filepath, 'wb') as f:
+            f.write(img_data)
+        
+        print(f"✅ Radar image saved to: {filepath}")
+        return filepath
+    except Exception as e:
+        print(f"❌ Failed to save radar image: {e}")
+        return None
+
+
 def main():
     """Main entry point for API client testing"""
     import sys
@@ -277,8 +329,12 @@ def main():
     print("Calls FastAPI service for storm detection")
     print("="*70)
     
-    # Check API health
+    # Initialize client with automatic service detection
     client = StormAPIClient()
+    print(f"🔗 Using API: {client.base_url}")
+    print()
+    
+    # Check API health
     print("🔍 Checking API health...")
     health = client.health_check()
     if health:
@@ -302,30 +358,50 @@ def main():
         longitude = 10.75
         print(f"Using default location: Oslo, Norway ({latitude:.4f}, {longitude:.4f})\n")
     
-    # Call API with full analysis
-    print("📡 Fetching storm prediction from API...")
-    print(f"   Location: {latitude:.4f}, {longitude:.4f}")
-    print(f"   Include Radar: Yes")
-    print(f"   Include Forecast: Yes")
-    print(f"   Historical Frames: 10")
-    print()
+    # Test different overlay modes
+    overlay_modes = ["map", "radar", "arrows", "all"]
     
-    response = client.predict_storm(
-        latitude=latitude,
-        longitude=longitude,
-        include_radar=True,
-        include_forecast=True,
-        historical_frames=10
-    )
+    for mode in overlay_modes:
+        print(f"\n📡 Fetching storm prediction with overlay mode: {mode}")
+        print(f"   Location: {latitude:.4f}, {longitude:.4f}")
+        print(f"   Include Radar Image: Yes")
+        print(f"   Overlay Mode: {mode}")
+        print()
+        
+        response = client.predict_storm(
+            latitude=latitude,
+            longitude=longitude,
+            include_radar=True,
+            include_forecast=True,
+            include_radar_image=True,
+            overlay_mode=mode,
+            historical_frames=10
+        )
+        
+        if response and response.get("success"):
+            print("✅ API call successful")
+            
+            # Save radar image if available
+            radar_image = response.get("radar_image")
+            if radar_image:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"radar_{mode}_{timestamp}.png"
+                save_radar_image(radar_image, filename)
+            
+            # Display analysis for the first mode only
+            if mode == overlay_modes[0]:
+                print("\n" + "="*70)
+                storm_risk = StormRisk(response.get("storm_risk", {}))
+                display_storm_analysis(storm_risk, (latitude, longitude))
+        else:
+            print("❌ Failed to get storm prediction from API")
+            if response:
+                print(f"   Error: {response.get('error', 'Unknown error')}")
     
-    if response and response.get("success"):
-        print("✅ API call successful\n")
-        storm_risk = StormRisk(response.get("storm_risk", {}))
-        display_storm_analysis(storm_risk, (latitude, longitude))
-    else:
-        print("❌ Failed to get storm prediction from API")
-        if response:
-            print(f"   Error: {response.get('error', 'Unknown error')}")
+    print("\n" + "="*70)
+    print("✅ All overlay modes tested")
+    print("📁 Radar images saved to 'radar_images/' directory")
+    print("="*70)
 
 
 if __name__ == "__main__":

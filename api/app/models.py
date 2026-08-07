@@ -111,12 +111,21 @@ class StormPredictionRequest(BaseModel):
     longitude: float = Field(..., ge=-180, le=180, description="Longitude in decimal degrees")
     include_radar: bool = Field(True, description="Include radar analysis")
     include_forecast: bool = Field(True, description="Include movement forecast")
+    include_radar_image: bool = Field(False, description="Include radar image with overlays")
+    overlay_mode: str = Field("radar", description="Overlay mode: map, radar, arrows, all")
     historical_frames: int = Field(10, ge=1, le=20, description="Number of historical radar frames")
     
     @validator('historical_frames')
     def validate_frames(cls, v):
         if v < 1 or v > 20:
             raise ValueError('historical_frames must be between 1 and 20')
+        return v
+    
+    @validator('overlay_mode')
+    def validate_overlay_mode(cls, v):
+        valid_modes = ["map", "radar", "arrows", "all"]
+        if v not in valid_modes:
+            raise ValueError(f'overlay_mode must be one of {valid_modes}')
         return v
 
 
@@ -127,6 +136,7 @@ class StormPredictionResponse(BaseModel):
     timestamp: str
     storm_risk: StormRisk
     processing_time_ms: float
+    radar_image: Optional[str] = None  # Base64 encoded radar image with overlays
     api_version: str = "2.0.0"
 
 

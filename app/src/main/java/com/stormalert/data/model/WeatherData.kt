@@ -83,3 +83,124 @@ fun getWeatherCondition(code: Int): WeatherCondition {
         else -> WeatherCondition(code, "Unknown", false)
     }
 }
+
+// FastAPI Storm Prediction Response Models
+data class StormPredictionResponse(
+    @SerializedName("latitude")
+    val latitude: Double,
+    @SerializedName("longitude")
+    val longitude: Double,
+    @SerializedName("current_weather")
+    val currentWeather: CurrentWeather,
+    @SerializedName("storm_probability")
+    val stormProbability: StormProbability,
+    @SerializedName("time_to_storm")
+    val timeToStorm: TimeToStorm,
+    @SerializedName("precipitation_forecast")
+    val precipitationForecast: PrecipitationForecast,
+    @SerializedName("radar_analysis")
+    val radarAnalysis: RadarAnalysis,
+    @SerializedName("forecast_data")
+    val forecastData: ForecastData?,
+    @SerializedName("risk_analysis")
+    val riskAnalysis: MultiRadiusAnalysis?,
+    @SerializedName("radar_image")
+    val radarImage: String?,
+    @SerializedName("analysis_time")
+    val analysisTime: String
+)
+
+data class StormProbability(
+    @SerializedName("probability")
+    val probability: Double,
+    @SerializedName("confidence_range")
+    val confidenceRange: List<Double>,
+    @SerializedName("storm_approaching")
+    val stormApproaching: Boolean
+)
+
+data class TimeToStorm(
+    @SerializedName("estimated_minutes")
+    val estimatedMinutes: Double?,
+    @SerializedName("confidence")
+    val confidence: Double
+)
+
+data class PrecipitationForecast(
+    @SerializedName("current_probability")
+    val currentProbability: Int,
+    @SerializedName("max_wind_next_6h")
+    val maxWindNext6h: Double
+)
+
+data class RadarAnalysis(
+    @SerializedName("intensity")
+    val intensity: Double
+)
+
+data class ForecastData(
+    @SerializedName("avg_speed_x")
+    val avgSpeedX: Double,
+    @SerializedName("avg_speed_y")
+    val avgSpeedY: Double,
+    @SerializedName("forecast_1h")
+    val forecast1h: List<Double>,
+    @SerializedName("forecast_5h")
+    val forecast5h: List<Double>,
+    @SerializedName("storm_centroids")
+    val stormCentroids: List<StormCentroid>,
+    @SerializedName("movements")
+    val movements: List<MovementVector>,
+    @SerializedName("acceleration")
+    val acceleration: List<Double>
+)
+
+data class StormCentroid(
+    @SerializedName("timestamp")
+    val timestamp: Long,
+    @SerializedName("x")
+    val x: Double,
+    @SerializedName("y")
+    val y: Double,
+    @SerializedName("pixel_count")
+    val pixelCount: Int
+)
+
+data class MovementVector(
+    @SerializedName("speed_x")
+    val speedX: Double,
+    @SerializedName("speed_y")
+    val speedY: Double,
+    @SerializedName("time_diff")
+    val timeDiff: Double
+)
+
+data class MultiRadiusAnalysis(
+    @SerializedName("current")
+    val current: RiskAnalysis,
+    @SerializedName("radius_20km")
+    val radius20km: RiskAnalysis,
+    @SerializedName("radius_100km")
+    val radius100km: RiskAnalysis
+)
+
+data class RiskAnalysis(
+    @SerializedName("radius_km")
+    val radiusKm: Double,
+    @SerializedName("distance_to_user_km")
+    val distanceToUserKm: Double,
+    @SerializedName("storm_speed_km_per_min")
+    val stormSpeedKmPerMin: Double,
+    @SerializedName("alignment")
+    val alignment: Double,
+    @SerializedName("is_approaching")
+    val isApproaching: Boolean,
+    @SerializedName("time_to_impact")
+    val timeToImpact: Double?,
+    @SerializedName("risk_level")
+    val riskLevel: String,
+    @SerializedName("forecast_1h_px")
+    val forecast1hPx: List<Double>?,
+    @SerializedName("forecast_5h_px")
+    val forecast5hPx: List<Double>?
+)
