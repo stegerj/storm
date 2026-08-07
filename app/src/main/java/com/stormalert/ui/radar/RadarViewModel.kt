@@ -2,9 +2,8 @@ package com.stormalert.ui.radar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.stormalert.data.analysis.StormMovementAnalyzer
-import com.stormalert.data.analysis.StormRiskAnalyzer
-import com.stormalert.data.repository.RadarRepository
+import com.stormalert.data.network.StormApiService
+import com.stormalert.data.network.StormPredictionRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,107 +13,53 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RadarViewModel @Inject constructor(
-    private val radarRepository: RadarRepository,
-    private val stormMovementAnalyzer: StormMovementAnalyzer,
-    private val stormRiskAnalyzer: StormRiskAnalyzer
+    private val stormApiService: StormApiService
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow<RadarUiState>(RadarUiState.Loading)
     val uiState: StateFlow<RadarUiState> = _uiState.asStateFlow()
     
-    private val _forecastData = MutableStateFlow<StormMovementAnalyzer.ForecastData?>(null)
-    val forecastData: StateFlow<StormMovementAnalyzer.ForecastData?> = _forecastData.asStateFlow()
+    private val _overlayMode = MutableStateFlow("all")
+    val overlayMode: StateFlow<String> = _overlayMode.asStateFlow()
     
-    private val _riskAnalysis = MutableStateFlow<StormRiskAnalyzer.MultiRadiusAnalysis?>(null)
-    val riskAnalysis: StateFlow<StormRiskAnalyzer.MultiRadiusAnalysis?> = _riskAnalysis.asStateFlow()
-    
-    fun loadLatestRadar(area: String = "nordic") {
+    fun loadStormPrediction(latitude: Double, longitude: Double) {
         viewModelScope.launch {
             _uiState.value = RadarUiState.Loading
             
-            // Try MET Norway first, fall back to RainViewer
-            radarRepository.getLatestRadarImage(area).fold(
-                onSuccess = { imageUrl ->
-                    _uiState.value = RadarUiState.Success(imageUrl)
-                },
-                onFailure = { error ->
-                    // Fall back to RainViewer
-                    loadRainViewerMaps()
-                }
+            val request = StormPredictionRequest(
+                latitude = latitude,
+                longitude = longitude,
+                include_radar = true,
+                include_forecast = true,
+                include_radar_image = true,
+                overlay_mode = _overlayMode.value,
+                historical_frames = 10
             )
-        }
-    }
-    
-    fun loadRainViewerMaps(latitude: Double = 44.5, longitude: Double = 11.34) {
-        viewModelScope.launch {
-            _uiState.value = RadarUiState.Loading
             
-            radarRepository.getRadarMaps().fold(
-                onSuccess = { mapsResponse ->
-                    // Load historical frames for analysis
-                    loadHistoricalAnalysis(latitude, longitude, mapsResponse)
-                },
-                onFailure = { error ->
-                    _uiState.value = RadarUiState.Error("Maps error: ${error.message}")
+            try {
+                val response = stormApiService.predictStorm(request)
+                if (response.isSuccessful && response.body() != null) {
+                    _uiState.value = RadarUiState.Success(response.body()!!)
+                } else {
+                    _uiState.value = RadarUiState.Error("API error: ${response.code()}")
                 }
-            )
+            } catch (e: Exception) {
+                _uiState.value = RadarUiState.Error("Network error: ${e.message}")
+            }
         }
     }
     
-    private fun loadHistoricalAnalysis(
-        latitude: Double,
-        longitude: Double,
-        mapsResponse: com.stormalert.data.network.RadarMapsResponse
-    ) {
-        viewModelScope.launch {
-            radarRepository.getHistoricalRadarFrames(10).fold(
-                onSuccess = { historicalFrames ->
-                    // Analyze storm movement
-                    val forecast = stormMovementAnalyzer.calculateStormMovement(historicalFrames)
-                    _forecastData.value = forecast
-                    
-                    // Analyze storm risk at multiple radii
-                    if (forecast != null) {
-                        val riskAnalysis = stormRiskAnalyzer.analyzeStormAtRadii(
-                            latitude, longitude, forecast
-                        )
-                        _riskAnalysis.value = riskAnalysis
-                    }
-                    
-                    // Load current radar for display
-                    val latestRadar = mapsResponse.radar.now ?: mapsResponse.radar.past.lastOrNull()
-                    if (latestRadar != null) {
-                        val (centerTileX, centerTileY) = radarRepository.latLonToTileCoords(latitude, longitude)
-                        val tiles = radarRepository.getCompositeRadarTiles(
-                            mapsResponse.host,
-                            latestRadar.path,
-                            centerTileX,
-                            centerTileY
-                        )
-                        _uiState.value = RadarUiState.SuccessWithTiles(tiles, mapsResponse.host, latestRadar.path)
-                    } else {
-                        _uiState.value = RadarUiState.Error("No radar data available")
-                    }
-                },
-                onFailure = { error ->
-                    _uiState.value = RadarUiState.Error("Historical analysis error: ${error.message}")
-                }
-            )
-        }
+    fun setOverlayMode(mode: String) {
+        _overlayMode.value = mode
     }
     
-    fun loadRadarWithForecast(latitude: Double, longitude: Double) {
-        loadRainViewerMaps(latitude, longitude)
+    fun refreshWithCurrentLocation(latitude: Double, longitude: Double) {
+        loadStormPrediction(latitude, longitude)
     }
 }
 
 sealed class RadarUiState {
     object Loading : RadarUiState()
-    data class Success(val imageUrl: String) : RadarUiState()
-    data class SuccessWithTiles(
-        val tiles: List<com.stormalert.data.repository.TileUrl>,
-        val host: String,
-        val path: String
-    ) : RadarUiState()
+    data class Success(val prediction: com.stormalert.data.model.StormPredictionResponse) : RadarUiState()
     data class Error(val message: String) : RadarUiState()
 }

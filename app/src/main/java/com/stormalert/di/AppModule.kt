@@ -5,6 +5,7 @@ import com.stormalert.data.analysis.StormMovementAnalyzer
 import com.stormalert.data.analysis.StormRiskAnalyzer
 import com.stormalert.data.network.RadarApiService
 import com.stormalert.data.network.RainViewerApiService
+import com.stormalert.data.network.StormApiService
 import com.stormalert.data.network.WeatherApiService
 import com.stormalert.location.LocationManager
 import dagger.Module
@@ -33,8 +34,8 @@ object AppModule {
         
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
     }
@@ -74,6 +75,17 @@ object AppModule {
     
     @Provides
     @Singleton
+    @Named("StormRetrofit")
+    fun provideStormRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(StormApiService.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+    
+    @Provides
+    @Singleton
     fun provideWeatherApiService(@Named("WeatherRetrofit") weatherRetrofit: Retrofit): WeatherApiService {
         return weatherRetrofit.create(WeatherApiService::class.java)
     }
@@ -88,6 +100,12 @@ object AppModule {
     @Singleton
     fun provideRainViewerApiService(@Named("RainViewerRetrofit") rainViewerRetrofit: Retrofit): RainViewerApiService {
         return rainViewerRetrofit.create(RainViewerApiService::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideStormApiService(@Named("StormRetrofit") stormRetrofit: Retrofit): StormApiService {
+        return stormRetrofit.create(StormApiService::class.java)
     }
     
     @Provides
