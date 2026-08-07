@@ -12,7 +12,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
-import java.util.Base64
+import android.util.Base64
 import android.graphics.BitmapFactory
 import com.stormalert.location.LocationManager
 import androidx.hilt.navigation.compose.hiltViewModel as hiltViewModelLocation
@@ -105,6 +105,7 @@ fun RadarScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OverlayModeSelector(
     selectedMode: String,
@@ -122,7 +123,7 @@ fun OverlayModeSelector(
             FilterChip(
                 selected = selectedMode == mode,
                 onClick = { onModeSelected(mode) },
-                label = { Text(mode.capitalize()) }
+                label = { Text(mode.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }) }
             )
         }
     }
@@ -141,7 +142,7 @@ fun StormPredictionContent(
         // Radar Image Display
         prediction.radarImage?.let { base64Image ->
             val bitmap = remember(base64Image) {
-                val bytes = Base64.decode(base64Image, Base64.DEFAULT)
+                val bytes = android.util.Base64.decode(base64Image, android.util.Base64.DEFAULT)
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
             }
             
