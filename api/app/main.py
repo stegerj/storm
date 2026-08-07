@@ -144,11 +144,13 @@ async def predict_storm(
             
             # Add movement forecast if requested
             if request.include_forecast:
+                logger.info("movement_analysis_requested", include_forecast=request.include_forecast, frames=request.historical_frames)
                 movement_data = await analyze_storm_movement(
                     request.latitude,
                     request.longitude,
                     request.historical_frames
                 )
+                logger.info("movement_analysis_completed", has_data=movement_data is not None)
                 
                 if movement_data:
                     storm_risk.forecast_data = movement_data
@@ -293,39 +295,51 @@ async def analyze_storm_movement(
 ) -> Optional[dict]:
     """Analyze storm movement from historical radar frames"""
     try:
+        logger.info("analyze_storm_movement_start", lat=latitude, lon=longitude, num_frames=num_frames)
+        
         async with RadarService() as radar_service:
             metadata = await radar_service.fetch_radar_metadata()
             
             radar_data = metadata.get("radar", {})
             past_frames = radar_data.get("past", [])
             
-            if len(past_frames) < 2:
-                logger.warning("not_enough_historical_frames", count=len(past_frames))
-                return None
+            logger.info("past_frames_available", count=len(past_frames))
             
-            # Get historical frames
+            # Get historical frames for analysis
             frames_to_fetch = past_frames[-num_frames:] if len(past_frames) >= num_frames else past_frames
             
-            # Fetch historical radar frames
+            if len(frames_to_fetch) < 1:
+                logger.warning("not_enough_frames", count=len(frames_to_fetch))
+                return None
+            
+            logger.info("fetching_frames", count=len(frames_to_fetch))
+            
+            # Fetch radar frames
             analyzer = StormMovementAnalyzer()
-            historical_frames = await analyzer.fetch_historical_frames(
+            all_frames = await analyzer.fetch_historical_frames(
                 metadata.get("host", settings.rainviewer_host),
                 frames_to_fetch,
                 latitude,
                 longitude
             )
             
-            if len(historical_frames) < 2:
-                logger.warning("not_enough_frames_fetched", count=len(historical_frames))
+            logger.info("frames_fetched_result", count=len(all_frames))
+            
+            if len(all_frames) < 1:
+                logger.warning("not_enough_frames_fetched", count=len(all_frames))
                 return None
             
+            logger.info("calling_analyze_movement", frames_count=len(all_frames))
+            
             # Analyze movement from fetched frames
-            movement_data = analyzer.analyze_movement(historical_frames)
+            movement_data = analyzer.analyze_movement(all_frames)
+            
+            logger.info("analyze_movement_result", has_data=movement_data is not None)
             
             return movement_data
         
     except Exception as e:
-        logger.error("storm_movement_error", lat=latitude, lon=longitude, error=str(e))
+        logger.error("storm_movement_error", lat=latitude, lon=longitude, error=str(e), exc_info=True)
         return None
 
 

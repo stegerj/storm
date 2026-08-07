@@ -281,7 +281,7 @@ class RadarService:
             
             logger.info("tile_coordinates_calculated", center_x=center_x, center_y=center_y, zoom=zoom)
             
-            composite_size = settings.radar_tile_size * 3
+            composite_size = settings.radar_tile_size * 2
             composite = Image.new('RGBA', (composite_size, composite_size))
             
             # Layer 1: Map tiles (always include as base layer except for radar-only mode)
@@ -299,6 +299,17 @@ class RadarService:
                         composite.paste(tile_img, (x_pos, y_pos))
                     except Exception as e:
                         logger.warning("map_tile_composite_failed", dx=dx, dy=dy, error=str(e))
+                
+                # Draw a marker at the center (user location)
+                draw = ImageDraw.Draw(composite)
+                center_x_px = settings.radar_tile_size
+                center_y_px = settings.radar_tile_size
+                draw.ellipse(
+                    [center_x_px - 5, center_y_px - 5, center_x_px + 5, center_y_px + 5],
+                    fill=(255, 0, 0),
+                    outline=(255, 255, 255),
+                    width=2
+                )
             
             # Layer 2: Radar tiles (if requested)
             if overlay_mode in ["radar", "all"]:
@@ -316,8 +327,8 @@ class RadarService:
                     
                     if path:
                         radar_tiles = []
-                        for dx in [-1, 0, 1]:
-                            for dy in [-1, 0, 1]:
+                        for dx in [-1, 0]:
+                            for dy in [-1, 0]:
                                 tile_x = center_x + dx
                                 tile_y = center_y + dy
                                 try:
@@ -376,8 +387,8 @@ class RadarService:
     async def _fetch_map_tiles(self, center_x: int, center_y: int, zoom: int) -> List[Tuple[bytes, int, int]]:
         """Fetch OpenStreetMap tiles for the area"""
         tiles = []
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
+        for dx in [-1, 0]:
+            for dy in [-1, 0]:
                 tile_x = center_x + dx
                 tile_y = center_y + dy
                 try:
@@ -390,54 +401,117 @@ class RadarService:
         return tiles
     
     def _draw_forecast_overlays(self, image: Image.Image, movement_data: dict) -> Image.Image:
-        """Draw forecast markers and arrows on radar image"""
+        """Draw circles around detected storm areas on radar image"""
         draw = ImageDraw.Draw(image)
         
-        # Center of image (where user is)
-        center_x = image.width // 2
-        center_y = image.height // 2
+        # First try to use current frame storms (from current radar image)
+        current_storms = movement_data.get('current_storms', [])
         
-        # Get forecast data
-        forecast_1h = movement_data.get('forecast_1h', (0, 0))
-        forecast_5h = movement_data.get('forecast_5h', (0, 0))
+        logger.info("drawing_overlays", current_storms_count=len(current_storms))
         
-        # Draw current position (blue circle)
-        draw.ellipse(
-            [center_x - 10, center_y - 10, center_x + 10, center_y + 10],
-            outline=(0, 0, 255),
-            width=2
-        )
-        
-        # Draw 1-hour forecast position (green circle)
-        forecast_1h_x = center_x + forecast_1h[0]
-        forecast_1h_y = center_y + forecast_1h[1]
-        draw.ellipse(
-            [forecast_1h_x - 8, forecast_1h_y - 8, forecast_1h_x + 8, forecast_1h_y + 8],
-            outline=(0, 255, 0),
-            width=2
-        )
-        
-        # Draw 5-hour forecast position (purple circle)
-        forecast_5h_x = center_x + forecast_5h[0]
-        forecast_5h_y = center_y + forecast_5h[1]
-        draw.ellipse(
-            [forecast_5h_x - 6, forecast_5h_y - 6, forecast_5h_x + 6, forecast_5h_y + 6],
-            outline=(128, 0, 128),
-            width=2
-        )
-        
-        # Draw arrow from center to 1-hour forecast (orange)
-        draw.line(
-            [center_x, center_y, forecast_1h_x, forecast_1h_y],
-            fill=(255, 165, 0),
-            width=3
-        )
-        
-        # Draw line from 1-hour to 5-hour forecast (purple)
-        draw.line(
-            [forecast_1h_x, forecast_1h_y, forecast_5h_x, forecast_5h_y],
-            fill=(128, 0, 128),
-            width=2
-        )
+        if current_storms:
+            # Draw circles for storms detected in current frame
+            for timestamp, storm_id, storm_x, storm_y, intensity, pixel_count in current_storms:
+                logger.info("drawing_current_storm_circle", storm_x=storm_x, storm_y=storm_y, intensity=intensity, pixels=pixel_count)
+                
+                # The storm coordinates are from the 2x2 tile grid (512x512) used for analysis
+                # The composite image is also 2x2 tile grid (512x512) with radar tiles pasted at (256,256) offset
+                # The radar tiles in the composite start at (256, 256) because they use offsets (-1,-1), (-1,0), (0,-1), (0,0)
+                # So we need to add the offset to map from analysis coordinates to composite coordinates
+                adjusted_x = storm_x + settings.radar_tile_size
+                adjusted_y = storm_y + settings.radar_tile_size
+                
+                logger.info("coordinate_adjustment", original_x=storm_x, original_y=storm_y, adjusted_x=adjusted_x, adjusted_y=adjusted_y)
+                
+                # Choose color based on intensity
+                if intensity == "high":
+                    circle_color = (255, 0, 0)  # Red for high intensity
+                else:
+                    circle_color = (255, 255, 0)  # Yellow for medium intensity
+                
+                # Draw circle around storm area (radius based on pixel count for larger storms)
+                radius = 15 + min(pixel_count // 10, 30)
+                draw.ellipse(
+                    [adjusted_x - radius, adjusted_y - radius, adjusted_x + radius, adjusted_y + radius],
+                    outline=circle_color,
+                    width=3
+                )
+                
+                # Draw a small dot at the storm center
+                draw.ellipse(
+                    [adjusted_x - 3, adjusted_y - 3, adjusted_x + 3, adjusted_y + 3],
+                    fill=circle_color
+                )
+                
+                logger.info("current_storm_circle_drawn", x=adjusted_x, y=adjusted_y, radius=radius, color=circle_color)
+        else:
+            # Fallback to single storm forecast (backward compatibility)
+            center_x = image.width // 2
+            center_y = image.height // 2
+            
+            forecast_1h = movement_data.get('forecast_1h', (0, 0))
+            forecast_5h = movement_data.get('forecast_5h', (0, 0))
+            
+            # Draw current position (blue circle)
+            draw.ellipse(
+                [center_x - 10, center_y - 10, center_x + 10, center_y + 10],
+                outline=(0, 0, 255),
+                width=2
+            )
+            
+            # Draw 1-hour forecast position (green circle)
+            forecast_1h_x = center_x + forecast_1h[0]
+            forecast_1h_y = center_y + forecast_1h[1]
+            draw.ellipse(
+                [forecast_1h_x - 8, forecast_1h_y - 8, forecast_1h_x + 8, forecast_1h_y + 8],
+                outline=(0, 255, 0),
+                width=2
+            )
+            
+            # Draw 5-hour forecast position (purple circle)
+            forecast_5h_x = center_x + forecast_5h[0]
+            forecast_5h_y = center_y + forecast_5h[1]
+            draw.ellipse(
+                [forecast_5h_x - 6, forecast_5h_y - 6, forecast_5h_x + 6, forecast_5h_y + 6],
+                outline=(128, 0, 128),
+                width=2
+            )
+            
+            # Draw arrow from center to 1-hour forecast (orange)
+            draw.line(
+                [center_x, center_y, forecast_1h_x, forecast_1h_y],
+                fill=(255, 165, 0),
+                width=3
+            )
+            
+            # Draw line from 1-hour to 5-hour forecast (purple)
+            draw.line(
+                [forecast_1h_x, forecast_1h_y, forecast_5h_x, forecast_5h_y],
+                fill=(128, 0, 128),
+                width=2
+            )
         
         return image
+    
+    def _draw_arrow_head(self, draw, from_x, from_y, to_x, to_y, color):
+        """Draw an arrow head at the end of a line"""
+        # Calculate angle
+        angle = math.atan2(to_y - from_y, to_x - from_x)
+        
+        # Arrow head size
+        arrow_size = 10
+        
+        # Calculate arrow head points
+        left_angle = angle + math.pi * 0.85
+        right_angle = angle - math.pi * 0.85
+        
+        left_x = to_x + arrow_size * math.cos(left_angle)
+        left_y = to_y + arrow_size * math.sin(left_angle)
+        right_x = to_x + arrow_size * math.cos(right_angle)
+        right_y = to_y + arrow_size * math.sin(right_angle)
+        
+        # Draw arrow head
+        draw.polygon(
+            [(to_x, to_y), (left_x, left_y), (right_x, right_y)],
+            fill=color
+        )
