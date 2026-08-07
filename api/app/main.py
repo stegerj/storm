@@ -300,22 +300,29 @@ async def analyze_storm_movement(
             past_frames = radar_data.get("past", [])
             
             if len(past_frames) < 2:
+                logger.warning("not_enough_historical_frames", count=len(past_frames))
                 return None
             
             # Get historical frames
             frames_to_fetch = past_frames[-num_frames:] if len(past_frames) >= num_frames else past_frames
             
-            # In production, you'd fetch actual radar images here
-        # For now, return placeholder data
-        return {
-            'avg_speed_x': 0.5,
-            'avg_speed_y': 0.3,
-            'forecast_1h': (30.0, 18.0),
-            'forecast_5h': (150.0, 90.0),
-            'storm_centroids': [],
-            'movements': [],
-            'acceleration': (0.0, 0.0)
-        }
+            # Fetch historical radar frames
+            analyzer = StormMovementAnalyzer()
+            historical_frames = await analyzer.fetch_historical_frames(
+                metadata.get("host", settings.rainviewer_host),
+                frames_to_fetch,
+                latitude,
+                longitude
+            )
+            
+            if len(historical_frames) < 2:
+                logger.warning("not_enough_frames_fetched", count=len(historical_frames))
+                return None
+            
+            # Analyze movement from fetched frames
+            movement_data = analyzer.analyze_movement(historical_frames)
+            
+            return movement_data
         
     except Exception as e:
         logger.error("storm_movement_error", lat=latitude, lon=longitude, error=str(e))

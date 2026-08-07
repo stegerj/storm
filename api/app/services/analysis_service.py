@@ -1,10 +1,12 @@
-"""Storm analysis service - ported from original Python script"""
+"""Storm movement and risk analysis service"""
 import math
 import numpy as np
-from typing import List, Tuple, Dict, Any, Optional
+from typing import Optional, Dict, Any, List, Tuple
+from datetime import datetime
+import structlog
 from PIL import Image
 from io import BytesIO
-import structlog
+import httpx
 
 from app.config import settings
 from app.models import (
@@ -18,47 +20,109 @@ logger = structlog.get_logger()
 class StormMovementAnalyzer:
     """Analyze storm movement from historical radar frames"""
     
-    @staticmethod
-    def calculate_movement(historical_frames: List[Tuple[int, Image.Image]]) -> Dict[str, Any]:
-        """Calculate storm movement vectors using advanced methods"""
-        logger.info("calculating_storm_movement", frames=len(historical_frames))
+    def __init__(self):
+        pass
+    
+    async def fetch_historical_frames(
+        self, 
+        host: str, 
+        frames: List[dict], 
+        latitude: float, 
+        longitude: float
+    ) -> List[Tuple[int, Image.Image]]:
+        """Fetch historical radar frames for storm movement analysis"""
+        zoom = settings.radar_zoom_level
+        tile_size = settings.radar_tile_size
+        n = 2 ** zoom
+        center_x = int(((longitude + 180) / 360 * n))
+        lat_rad = math.radians(latitude)
+        center_y = int(((1 - math.asinh(math.tan(lat_rad)) / math.pi) / 2 * n))
         
+        historical_frames = []
+        
+        for frame in frames:
+            frame_time = frame.get("time")
+            frame_path = frame.get("path")
+            
+            if not frame_time or not frame_path:
+                continue
+            
+            # Fetch 2x2 grid for each historical frame
+            tiles_to_fetch = []
+            for dx in [-1, 0]:
+                for dy in [-1, 0]:
+                    x_tile = center_x + dx
+                    y_tile = center_y + dy
+                    tiles_to_fetch.append((x_tile, y_tile, dx, dy))
+            
+            frame_tiles = []
+            for x_tile, y_tile, dx, dy in tiles_to_fetch:
+                tile_url = f"{host}{frame_path}/{tile_size}/{zoom}/{x_tile}/{y_tile}/0/1_0.png"
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(tile_url, timeout=10)
+                        if response.status_code == 200:
+                            tile_img = Image.open(BytesIO(response.content))
+                            if tile_img.mode != 'RGBA':
+                                tile_img = tile_img.convert('RGBA')
+                            frame_tiles.append((tile_img, dx, dy))
+                except Exception as e:
+                    logger.warning("tile_fetch_failed", x=x_tile, y=y_tile, error=str(e))
+            
+            if frame_tiles:
+                # Stitch tiles together
+                composite_frame = Image.new('RGBA', (tile_size * 2, tile_size * 2))
+                for tile_img, dx, dy in frame_tiles:
+                    pos_x = (dx + 1) * tile_size
+                    pos_y = (dy + 1) * tile_size
+                    composite_frame.paste(tile_img, (pos_x, pos_y))
+                
+                historical_frames.append((frame_time, composite_frame))
+                logger.info("historical_frame_fetched", time=frame_time)
+        
+        return historical_frames
+    
+    def analyze_movement(
+        self, 
+        historical_frames: List[Tuple[int, Image.Image]]
+    ) -> Optional[Dict[str, Any]]:
+        """Analyze storm movement from historical radar frames"""
         if len(historical_frames) < 2:
-            logger.warning("insufficient_frames_for_analysis")
-            return {}
+            logger.warning("not_enough_frames_for_analysis", count=len(historical_frames))
+            return None
         
         try:
             # Extract storm centroids from each frame
-            storm_centroids = StormMovementAnalyzer._extract_centroids(historical_frames)
+            storm_centroids = self._extract_centroids(historical_frames)
             
             if len(storm_centroids) < 2:
                 logger.warning("insufficient_storm_data")
-                return {}
+                return None
             
             # Calculate movement vectors
-            movements = StormMovementAnalyzer._calculate_movements(storm_centroids)
+            movements = self._calculate_movements(storm_centroids)
             
             if not movements:
                 logger.warning("no_movement_detected")
-                return {}
+                return None
             
             # Weighted averaging
-            weighted_speed = StormMovementAnalyzer._weighted_average(movements)
+            weighted_speed = self._weighted_average(movements)
             
             # Polynomial regression with numpy
-            regression_result = StormMovementAnalyzer._polynomial_regression(storm_centroids)
+            regression_result = self._polynomial_regression(storm_centroids)
             
             # Directional trend analysis
-            directional_correction = StormMovementAnalyzer._directional_trend(movements)
+            directional_correction = self._directional_trend(movements)
             
             # Select final forecast velocity
-            final_speed = StormMovementAnalyzer._select_forecast_velocity(
+            final_speed = self._select_forecast_velocity(
                 weighted_speed, regression_result, directional_correction
             )
             
             # Calculate forecasts
-            forecast_1h = (final_speed[0] * 60, final_speed[1] * 60)
-            forecast_5h = StormMovementAnalyzer._calculate_5h_forecast(
+            forecast_1h = (final_speed[0] * 60.0, final_speed[1] * 60.0)
+            forecast_5h = self._calculate_5h_forecast(
                 regression_result, storm_centroids, final_speed
             )
             
@@ -84,7 +148,7 @@ class StormMovementAnalyzer:
             
         except Exception as e:
             logger.error("movement_analysis_error", error=str(e))
-            return {}
+            return None
     
     @staticmethod
     def _extract_centroids(frames: List[Tuple[int, Image.Image]]) -> List[Tuple]:

@@ -92,7 +92,7 @@ class StormAPIClient:
         }
         
         try:
-            response = requests.post(url, json=payload, timeout=30)
+            response = requests.post(url, json=payload, timeout=120)  # Increased timeout for radar processing
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -196,7 +196,11 @@ def display_storm_analysis(storm_risk: StormRisk, location: Tuple[float, float])
             print(f"  Current Location:")
             print(f"    Risk Level: {current.get('risk_level', 'unknown').upper()}")
             print(f"    Distance: {current.get('distance_to_user_km', 0):.1f} km")
-            print(f"    Time to Impact: {current.get('time_to_impact', 0):.1f} min")
+            time_to_impact = current.get('time_to_impact')
+            if time_to_impact and time_to_impact != float('inf'):
+                print(f"    Time to Impact: {time_to_impact:.1f} min")
+            else:
+                print(f"    Time to Impact: N/A")
         
         if 'radius_20km' in risk:
             radius_20 = risk['radius_20km']
