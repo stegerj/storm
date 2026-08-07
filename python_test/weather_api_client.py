@@ -343,20 +343,14 @@ def main():
         print(f"   Time: {health.get('timestamp', 'unknown')}")
     else:
         print("❌ API health check failed")
-        return
     
     print()
     
-    # Try auto-detect location first
-    location = get_location_from_ip()
-    if location:
-        latitude, longitude = location
-        print(f"Using auto-detected location for weather analysis\n")
-    else:
-        # Default to Oslo, Norway
-        latitude = 59.91
-        longitude = 10.75
-        print(f"Using default location: Oslo, Norway ({latitude:.4f}, {longitude:.4f})\n")
+    # Use a location with likely storm activity for testing
+    latitude = 25.7617  # Miami, Florida
+    longitude = -80.1918
+    city = "Miami"
+    print(f"📍 Using test location: {city} ({latitude}, {longitude})")
     
     # Test different overlay modes
     overlay_modes = ["map", "radar", "arrows", "all"]
@@ -375,7 +369,7 @@ def main():
             include_forecast=True,
             include_radar_image=True,
             overlay_mode=mode,
-            historical_frames=10
+            historical_frames=5
         )
         
         if response and response.get("success"):

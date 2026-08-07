@@ -80,3 +80,6 @@ lint/tmp/
 
 #
 /python_test/radar_images/
+/radar_images/
+/api/radar_images/
+/api/app/radar_images/

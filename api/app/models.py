@@ -55,6 +55,19 @@ class MovementVector(BaseModel):
     time_diff: float
 
 
+class StormForecast(BaseModel):
+    """Individual storm cell forecast"""
+    track_id: int
+    latest_x: float
+    latest_y: float
+    intensity: str  # "high" or "medium"
+    avg_speed_x: float
+    avg_speed_y: float
+    forecast_1h: Tuple[float, float]
+    forecast_5h: Tuple[float, float]
+    track_length: int
+
+
 class ForecastData(BaseModel):
     """Storm movement forecast"""
     avg_speed_x: float
@@ -64,6 +77,7 @@ class ForecastData(BaseModel):
     storm_centroids: List[StormCentroid]
     movements: List[MovementVector]
     acceleration: Tuple[float, float]
+    storm_forecasts: List[StormForecast] = []  # Individual storm forecasts
 
 
 class RiskAnalysis(BaseModel):
