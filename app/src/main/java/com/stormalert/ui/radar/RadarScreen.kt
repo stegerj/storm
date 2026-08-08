@@ -118,7 +118,7 @@ fun OverlayModeSelector(
 
 @Composable
 fun StormPredictionContent(
-    prediction: com.stormalert.data.model.StormPredictionResponse
+    prediction: com.stormalert.data.model.StormPredictionResponse?
 ) {
     Column(
         modifier = Modifier
@@ -141,16 +141,20 @@ fun StormPredictionContent(
                     style = MaterialTheme.typography.titleSmall
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Prediction loaded: true", style = MaterialTheme.typography.bodySmall)
-                Text("Has radar image: ${prediction.radarImage != null}", style = MaterialTheme.typography.bodySmall)
-                Text("Image length: ${prediction.radarImage?.length ?: 0}", style = MaterialTheme.typography.bodySmall)
+                Text("Prediction loaded: ${prediction != null}", style = MaterialTheme.typography.bodySmall)
+                if (prediction != null) {
+                    Text("Has radar image: ${prediction.radarImage != null}", style = MaterialTheme.typography.bodySmall)
+                    Text("Image length: ${prediction.radarImage?.length ?: 0}", style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
         
         Spacer(modifier = Modifier.height(8.dp))
         
         // Storm Probability Card
-        StormProbabilityCard(prediction.stormProbability)
+        prediction?.stormProbability?.let { stormProbability ->
+            StormProbabilityCard(stormProbability)
+        }
         
         Spacer(modifier = Modifier.height(8.dp))
         
@@ -163,7 +167,7 @@ fun StormPredictionContent(
             ) {
                 Text("Radar Image", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
-                if (prediction.radarImage != null && prediction.radarImage.isNotEmpty()) {
+                if (prediction?.radarImage != null && prediction.radarImage.isNotEmpty()) {
                     Text("Image data available (length: ${prediction.radarImage.length})", style = MaterialTheme.typography.bodySmall)
                     Text("Image decoding is disabled for debugging", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
@@ -173,12 +177,12 @@ fun StormPredictionContent(
         }
         
         // Risk Analysis Card
-        prediction.riskAnalysis?.let { riskAnalysis ->
+        prediction?.riskAnalysis?.let { riskAnalysis ->
             RiskAnalysisCard(riskAnalysis)
         }
         
         // Forecast Data Card
-        prediction.forecastData?.let { forecastData ->
+        prediction?.forecastData?.let { forecastData ->
             ForecastDataCard(forecastData)
         }
     }
