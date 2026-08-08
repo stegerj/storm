@@ -23,7 +23,7 @@ class RadarRepository @Inject constructor(
             if (response.isSuccessful) {
                 val responseBody = response.body()
                 if (responseBody != null && responseBody.uri != null) {
-                    Result.success(responseBody.uri!!)
+                    Result.success(responseBody.uri)
                 } else {
                     Result.failure(Exception("No URI in response: ${responseBody}"))
                 }

@@ -59,13 +59,6 @@ class LocationManager @Inject constructor(
      */
     private suspend fun getCurrentLocation(): Location? {
         return try {
-            val locationRequest = LocationRequest.Builder(
-                Priority.PRIORITY_HIGH_ACCURACY,
-                3000 // 3 seconds interval
-            )
-                .setMinUpdateIntervalMillis(1000) // 1 second min
-                .build()
-            
             val locationFlow = getLocationUpdates(3000)
             locationFlow.firstOrNull()
         } catch (e: Exception) {
