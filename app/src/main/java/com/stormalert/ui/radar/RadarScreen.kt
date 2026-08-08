@@ -12,21 +12,33 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
-import java.util.Base64
+import android.util.Base64
 import android.graphics.BitmapFactory
+import com.stormalert.location.LocationManager
+import androidx.hilt.navigation.compose.hiltViewModel as hiltViewModelLocation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RadarScreen(
-    viewModel: RadarViewModel = hiltViewModel()
+    viewModel: RadarViewModel = hiltViewModel(),
+    locationManager: LocationManager = hiltViewModelLocation()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val overlayMode by viewModel.overlayMode.collectAsState()
     
     var selectedOverlayMode by remember { mutableStateOf("all") }
+    var userLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     
     LaunchedEffect(Unit) {
-        viewModel.loadStormPrediction(44.5, 11.34) // Default coordinates
+        // Get user's actual location
+        val location = locationManager.getLastKnownLocation()
+        if (location != null) {
+            userLocation = Pair(location.latitude, location.longitude)
+            viewModel.loadStormPrediction(location.latitude, location.longitude)
+        } else {
+            // Fallback to default coordinates if location not available
+            viewModel.loadStormPrediction(44.5, 11.34)
+        }
     }
     
     Scaffold(
@@ -36,7 +48,8 @@ fun RadarScreen(
                 actions = {
                     IconButton(onClick = { 
                         viewModel.setOverlayMode(selectedOverlayMode)
-                        viewModel.refreshWithCurrentLocation(44.5, 11.34)
+                        val (lat, lon) = userLocation ?: (44.5 to 11.34)
+                        viewModel.refreshWithCurrentLocation(lat, lon)
                     }) {
                         Text("Refresh")
                     }
@@ -55,7 +68,8 @@ fun RadarScreen(
                 onModeSelected = { mode ->
                     selectedOverlayMode = mode
                     viewModel.setOverlayMode(mode)
-                    viewModel.refreshWithCurrentLocation(44.5, 11.34)
+                    val (lat, lon) = userLocation ?: (44.5 to 11.34)
+                    viewModel.refreshWithCurrentLocation(lat, lon)
                 }
             )
             
@@ -91,6 +105,7 @@ fun RadarScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OverlayModeSelector(
     selectedMode: String,
@@ -108,7 +123,7 @@ fun OverlayModeSelector(
             FilterChip(
                 selected = selectedMode == mode,
                 onClick = { onModeSelected(mode) },
-                label = { Text(mode.capitalize()) }
+                label = { Text(mode.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }) }
             )
         }
     }
@@ -127,7 +142,7 @@ fun StormPredictionContent(
         // Radar Image Display
         prediction.radarImage?.let { base64Image ->
             val bitmap = remember(base64Image) {
-                val bytes = Base64.decode(base64Image, Base64.DEFAULT)
+                val bytes = android.util.Base64.decode(base64Image, android.util.Base64.DEFAULT)
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
             }
             
