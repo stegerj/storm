@@ -9,6 +9,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.WbCloudy
+import androidx.compose.material.icons.filled.Grain
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Thunderstorm
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -226,27 +233,50 @@ fun WeatherContent(
                     MaterialTheme.colorScheme.primaryContainer
             )
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
+            Row(
+                modifier = Modifier.padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Current Weather",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "${weatherData.currentWeather.temperature.toInt()}°C",
-                    style = MaterialTheme.typography.headlineMedium
-                )
-                Text(
-                    condition.description,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Wind: ${weatherData.currentWeather.windSpeed.toInt()} km/h")
-                stormRisk?.let {
-                    Text("Precipitation: ${it.precipitationProbability}%")
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Current Weather",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "${weatherData.currentWeather.temperature.toInt()}°C",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                    Text(
+                        condition.description,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Wind: ${weatherData.currentWeather.windSpeed.toInt()} km/h")
+                    stormRisk?.let {
+                        Text("Precipitation: ${it.precipitationProbability}%")
+                    }
                 }
+                
+                // Weather Icon
+                Icon(
+                    imageVector = when (condition.code) {
+                        0 -> Icons.Default.WbSunny
+                        1, 2, 3 -> Icons.Default.WbCloudy
+                        45, 48 -> Icons.Default.Cloud
+                        51, 53, 55, 61, 63, 65, 80, 81, 82 -> Icons.Default.WaterDrop
+                        71, 73, 75, 77, 85, 86 -> Icons.Default.AcUnit
+                        95, 96, 99 -> Icons.Default.Thunderstorm
+                        else -> Icons.Default.WbSunny
+                    },
+                    contentDescription = condition.description,
+                    modifier = Modifier.size(80.dp),
+                    tint = if (condition.isStormy) 
+                        MaterialTheme.colorScheme.error 
+                    else 
+                        MaterialTheme.colorScheme.primary
+                )
             }
         }
         
@@ -342,16 +372,6 @@ fun WeatherContent(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Check Alerts Button
-        Button(
-            onClick = onCheckAlerts,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Check for Storm Alerts")
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
         // Location Info
         Card(
             modifier = Modifier.fillMaxWidth()
@@ -368,6 +388,18 @@ fun WeatherContent(
                 Text("Lon: ${weatherData.longitude}")
             }
         }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Check Alerts Button
+        Button(
+            onClick = onCheckAlerts,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Check for Storm Alerts")
+        }
+        
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
@@ -455,8 +487,16 @@ fun HourlyForecastCard(hourlyData: HourlyData) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 for (i in 0 until minOf(hoursToShow, hourlyData.time.size)) {
+                    val timeStr = hourlyData.time[i]
                     val time = try {
-                        timeFormat.parse(hourlyData.time[i])
+                        // Try parsing with different formats
+                        if (timeStr.contains("T")) {
+                            // ISO format: 2024-08-08T12:00
+                            val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault()) }
+                            isoFormat.parse(timeStr)
+                        } else {
+                            timeFormat.parse(timeStr)
+                        }
                     } catch (e: Exception) {
                         null
                     }
@@ -469,7 +509,7 @@ fun HourlyForecastCard(hourlyData: HourlyData) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            time?.let { hourFormat.format(it) } ?: "N/A",
+                            time?.let { hourFormat.format(it) } ?: timeStr.takeLast(5).take(2),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.height(4.dp))

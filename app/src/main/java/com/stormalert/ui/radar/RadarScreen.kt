@@ -120,7 +120,25 @@ fun OverlayModeSelector(
 fun StormPredictionContent(
     prediction: com.stormalert.data.model.StormPredictionResponse
 ) {
+    var bitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
     var bitmapError by remember { mutableStateOf<String?>(null) }
+    
+    // Load bitmap asynchronously to prevent UI freezing
+    LaunchedEffect(prediction.radarImage) {
+        prediction.radarImage?.let { base64Image ->
+            isLoading = true
+            bitmapError = null
+            try {
+                val bytes = android.util.Base64.decode(base64Image, android.util.Base64.DEFAULT)
+                bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            } catch (e: Exception) {
+                bitmapError = "Failed to decode radar image: ${e.message}"
+                bitmap = null
+            }
+            isLoading = false
+        }
+    }
     
     Column(
         modifier = Modifier
@@ -132,18 +150,21 @@ fun StormPredictionContent(
         StormProbabilityCard(prediction.stormProbability)
         
         // Radar Image Display
-        prediction.radarImage?.let { base64Image ->
-            val bitmap = remember(base64Image) {
-                try {
-                    val bytes = android.util.Base64.decode(base64Image, android.util.Base64.DEFAULT)
-                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                } catch (e: Exception) {
-                    bitmapError = "Failed to decode radar image: ${e.message}"
-                    null
+        if (prediction.radarImage != null) {
+            if (isLoading) {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
-            }
-            
-            if (bitmap != null) {
+            } else if (bitmap != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {

@@ -60,13 +60,10 @@ class RadarViewModel @Inject constructor(
                 if (location != null) {
                     loadStormPrediction(location.latitude, location.longitude)
                 } else {
-                    // Fallback to default coordinates if location not available
-                    loadStormPrediction(44.5, 11.34)
+                    _uiState.value = RadarUiState.Error("Location not available. Please enable location services.")
                 }
             } catch (e: Exception) {
-                // If location manager fails, use fallback coordinates
-                _uiState.value = RadarUiState.Loading
-                loadStormPrediction(44.5, 11.34)
+                _uiState.value = RadarUiState.Error("Failed to get location: ${e.message}")
             }
         }
     }
