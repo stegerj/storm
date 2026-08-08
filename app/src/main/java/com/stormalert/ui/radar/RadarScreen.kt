@@ -2,6 +2,8 @@ package com.stormalert.ui.radar
 
 import android.util.Log
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -84,22 +86,9 @@ fun RadarScreen(
                 }
                 
                 is RadarUiState.Success -> {
-                    try {
-                        val prediction = (uiState as RadarUiState.Success).prediction
-                        Log.d("RadarScreen", "Success state, prediction: $prediction")
-                        StormPredictionContent(prediction)
-                    } catch (e: Exception) {
-                        Log.e("RadarScreen", "Error rendering StormPredictionContent", e)
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "Error rendering content: ${e.message}",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
+                    val prediction = (uiState as RadarUiState.Success).prediction
+                    Log.d("RadarScreen", "Success state, prediction: $prediction")
+                    StormPredictionContent(prediction)
                 }
             }
         }
