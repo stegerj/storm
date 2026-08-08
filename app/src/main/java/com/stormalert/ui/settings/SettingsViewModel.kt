@@ -25,27 +25,38 @@ class SettingsViewModel @Inject constructor(
     }
     
     private fun loadSettings() {
-        // In a real app, load from SharedPreferences or DataStore
+        // Load settings from SharedPreferences
+        val prefs = context.getSharedPreferences("storm_alert_settings", Context.MODE_PRIVATE)
         _uiState.value = SettingsUiState(
-            enableAlerts = true,
-            alertThreshold = 50,
-            checkInterval = 15
+            enableAlerts = prefs.getBoolean("enable_alerts", true),
+            alertThreshold = prefs.getInt("alert_threshold", 50),
+            checkInterval = prefs.getInt("check_interval", 15)
         )
     }
     
     fun toggleAlerts(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(enableAlerts = enabled)
-        // Save to SharedPreferences in real app
+        saveSettings()
     }
     
     fun updateAlertThreshold(threshold: Int) {
         _uiState.value = _uiState.value.copy(alertThreshold = threshold)
-        // Save to SharedPreferences in real app
+        saveSettings()
     }
     
     fun updateCheckInterval(interval: Int) {
         _uiState.value = _uiState.value.copy(checkInterval = interval)
-        // Save to SharedPreferences in real app
+        saveSettings()
+    }
+    
+    private fun saveSettings() {
+        val prefs = context.getSharedPreferences("storm_alert_settings", Context.MODE_PRIVATE)
+        with(prefs.edit()) {
+            putBoolean("enable_alerts", _uiState.value.enableAlerts)
+            putInt("alert_threshold", _uiState.value.alertThreshold)
+            putInt("check_interval", _uiState.value.checkInterval)
+            apply()
+        }
     }
     
     fun startBackgroundService() {
