@@ -175,24 +175,19 @@ fun StormPredictionContent(
                 Text("Radar Image", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 if (prediction?.radarImage != null && prediction.radarImage.isNotEmpty()) {
-                    try {
-                        val imageBytes = Base64.decode(prediction.radarImage, Base64.DEFAULT)
-                        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                        if (bitmap != null) {
-                            Image(
-                                bitmap = asImageBitmap(bitmap),
-                                contentDescription = "Radar Image",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(300.dp),
-                                contentScale = ContentScale.FitWidth
-                            )
-                        } else {
-                            Text("Failed to decode radar image", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                        }
-                    } catch (e: Exception) {
-                        Log.e("StormPredictionContent", "Error decoding radar image", e)
-                        Text("Error decoding image: ${e.message}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    val imageBytes = Base64.decode(prediction.radarImage, Base64.DEFAULT)
+                    val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Radar Image",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp),
+                            contentScale = ContentScale.FitWidth
+                        )
+                    } else {
+                        Text("Failed to decode radar image", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                     }
                 } else {
                     Text("No radar image available from API", style = MaterialTheme.typography.bodySmall)
