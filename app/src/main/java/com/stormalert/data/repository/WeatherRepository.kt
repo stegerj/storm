@@ -33,21 +33,8 @@ class WeatherRepository @Inject constructor(
         val currentData = weatherResponse.current
         val fallbackWeather = weatherResponse.currentWeather
         
-        val weatherCode = if (currentData != null) {
-            currentData.weatherCode
-        } else if (fallbackWeather != null) {
-            fallbackWeather.weatherCode
-        } else {
-            0
-        }
-        
-        val windSpeed = if (currentData != null) {
-            currentData.windSpeed10m
-        } else if (fallbackWeather != null) {
-            fallbackWeather.windSpeed
-        } else {
-            0.0
-        }
+        val weatherCode = currentData?.weatherCode ?: fallbackWeather?.weatherCode ?: 0
+        val windSpeed = currentData?.windSpeed10m ?: fallbackWeather?.windSpeed ?: 0.0
         
         val currentCondition = getWeatherCondition(weatherCode)
         val isCurrentlyStormy = currentCondition.isStormy
