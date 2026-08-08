@@ -55,11 +55,17 @@ class RadarViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = RadarUiState.Loading
             
-            val location = locationManager.getLastKnownLocation()
-            if (location != null) {
-                loadStormPrediction(location.latitude, location.longitude)
-            } else {
-                // Fallback to default coordinates if location not available
+            try {
+                val location = locationManager.getLastKnownLocation()
+                if (location != null) {
+                    loadStormPrediction(location.latitude, location.longitude)
+                } else {
+                    // Fallback to default coordinates if location not available
+                    loadStormPrediction(44.5, 11.34)
+                }
+            } catch (e: Exception) {
+                // If location manager fails, use fallback coordinates
+                _uiState.value = RadarUiState.Loading
                 loadStormPrediction(44.5, 11.34)
             }
         }

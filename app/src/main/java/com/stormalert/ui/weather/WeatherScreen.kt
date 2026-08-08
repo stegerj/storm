@@ -208,7 +208,7 @@ fun WeatherContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
         // Current Weather Card
