@@ -29,7 +29,12 @@ class WeatherRepository @Inject constructor(
     }
     
     fun analyzeStormRisk(weatherResponse: WeatherResponse): StormRisk {
-        val currentCondition = getWeatherCondition(weatherResponse.currentWeather.weatherCode)
+        // Use enhanced current data if available, otherwise fall back to currentWeather
+        val currentData = weatherResponse.current ?: weatherResponse.currentWeather
+        val weatherCode = currentData?.weatherCode ?: weatherResponse.currentWeather?.weatherCode ?: 0
+        val windSpeed = currentData?.windSpeed10m ?: weatherResponse.currentWeather?.windSpeed ?: 0.0
+        
+        val currentCondition = getWeatherCondition(weatherCode)
         val isCurrentlyStormy = currentCondition.isStormy
         
         // Check hourly data for approaching storms
@@ -38,7 +43,7 @@ class WeatherRepository @Inject constructor(
             val next6Hours = data.precipitationProbability?.take(6) ?: emptyList()
             val highPrecipitationHours = next6Hours.count { it > 70 }
             val moderatePrecipitationHours = next6Hours.count { it > 50 }
-            val maxWindSpeed = data.windSpeed?.take(6)?.maxOrNull() ?: 0.0
+            val maxWindSpeed = data.windSpeed10m?.take(6)?.maxOrNull() ?: 0.0
             val currentPrecipitation = data.precipitation?.firstOrNull() ?: 0.0
             
             // Enhanced storm detection logic
@@ -82,7 +87,7 @@ class WeatherRepository @Inject constructor(
                 stormProbability = stormProbability,
                 estimatedTimeToStorm = estimatedTimeToStorm,
                 currentCondition = currentCondition.description,
-                windSpeed = weatherResponse.currentWeather.windSpeed,
+                windSpeed = windSpeed,
                 precipitationProbability = hourlyData.precipitationProbability?.firstOrNull() ?: 0,
                 currentPrecipitation = currentPrecipitation,
                 maxWindSpeedNext6Hours = maxWindSpeed
@@ -93,10 +98,10 @@ class WeatherRepository @Inject constructor(
             stormProbability = if (isCurrentlyStormy) 1.0 else 0.0,
             estimatedTimeToStorm = -1,
             currentCondition = currentCondition.description,
-            windSpeed = weatherResponse.currentWeather.windSpeed,
+            windSpeed = windSpeed,
             precipitationProbability = 0,
             currentPrecipitation = 0.0,
-            maxWindSpeedNext6Hours = weatherResponse.currentWeather.windSpeed
+            maxWindSpeedNext6Hours = windSpeed
         )
         
         return nextHoursStormRisk
