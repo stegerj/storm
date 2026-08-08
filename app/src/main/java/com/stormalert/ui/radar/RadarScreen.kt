@@ -14,31 +14,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
 import android.util.Base64
 import android.graphics.BitmapFactory
-import com.stormalert.location.LocationManager
-import androidx.hilt.navigation.compose.hiltViewModel as hiltViewModelLocation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RadarScreen(
-    viewModel: RadarViewModel = hiltViewModel(),
-    locationManager: LocationManager = hiltViewModelLocation()
+    viewModel: RadarViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val overlayMode by viewModel.overlayMode.collectAsState()
     
     var selectedOverlayMode by remember { mutableStateOf("all") }
-    var userLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     
     LaunchedEffect(Unit) {
-        // Get user's actual location
-        val location = locationManager.getLastKnownLocation()
-        if (location != null) {
-            userLocation = Pair(location.latitude, location.longitude)
-            viewModel.loadStormPrediction(location.latitude, location.longitude)
-        } else {
-            // Fallback to default coordinates if location not available
-            viewModel.loadStormPrediction(44.5, 11.34)
-        }
+        viewModel.loadStormPredictionWithLocation()
     }
     
     Scaffold(
@@ -48,8 +36,7 @@ fun RadarScreen(
                 actions = {
                     IconButton(onClick = { 
                         viewModel.setOverlayMode(selectedOverlayMode)
-                        val (lat, lon) = userLocation ?: (44.5 to 11.34)
-                        viewModel.refreshWithCurrentLocation(lat, lon)
+                        viewModel.refreshWithCurrentLocation()
                     }) {
                         Text("Refresh")
                     }
@@ -68,8 +55,7 @@ fun RadarScreen(
                 onModeSelected = { mode ->
                     selectedOverlayMode = mode
                     viewModel.setOverlayMode(mode)
-                    val (lat, lon) = userLocation ?: (44.5 to 11.34)
-                    viewModel.refreshWithCurrentLocation(lat, lon)
+                    viewModel.refreshWithCurrentLocation()
                 }
             )
             

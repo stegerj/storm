@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stormalert.data.network.StormApiService
 import com.stormalert.data.network.StormPredictionRequest
+import com.stormalert.location.LocationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RadarViewModel @Inject constructor(
-    private val stormApiService: StormApiService
+    private val stormApiService: StormApiService,
+    private val locationManager: LocationManager
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow<RadarUiState>(RadarUiState.Loading)
@@ -49,12 +51,26 @@ class RadarViewModel @Inject constructor(
         }
     }
     
+    fun loadStormPredictionWithLocation() {
+        viewModelScope.launch {
+            _uiState.value = RadarUiState.Loading
+            
+            val location = locationManager.getLastKnownLocation()
+            if (location != null) {
+                loadStormPrediction(location.latitude, location.longitude)
+            } else {
+                // Fallback to default coordinates if location not available
+                loadStormPrediction(44.5, 11.34)
+            }
+        }
+    }
+    
     fun setOverlayMode(mode: String) {
         _overlayMode.value = mode
     }
     
-    fun refreshWithCurrentLocation(latitude: Double, longitude: Double) {
-        loadStormPrediction(latitude, longitude)
+    fun refreshWithCurrentLocation() {
+        loadStormPredictionWithLocation()
     }
 }
 
