@@ -199,9 +199,10 @@ fun WeatherContent(
     
     // Use enhanced current data if available, otherwise fall back to currentWeather
     val currentData = weatherData.current
-    val temperature = currentData?.temperature ?: weatherData.currentWeather?.temperature ?: 0.0
-    val weatherCode = currentData?.weatherCode ?: weatherData.currentWeather?.weatherCode ?: 0
-    val windSpeed = currentData?.windSpeed10m ?: weatherData.currentWeather?.windSpeed ?: 0.0
+    val fallbackWeather = weatherData.currentWeather
+    val temperature = currentData?.temperature ?: fallbackWeather?.temperature ?: 0.0
+    val weatherCode = currentData?.weatherCode ?: fallbackWeather?.weatherCode ?: 0
+    val windSpeed = currentData?.windSpeed10m ?: fallbackWeather?.windSpeed ?: 0.0
     val condition = getWeatherCondition(weatherCode)
     
     Column(
