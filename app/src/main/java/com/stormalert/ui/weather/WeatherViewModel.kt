@@ -55,11 +55,6 @@ class WeatherViewModel @Inject constructor(
         }
     }
     
-    fun fetchWeatherWithDefaultLocation() {
-        // Fallback method with known coordinates
-        fetchWeather(59.91, 10.75) // Oslo, Norway
-    }
-    
     fun checkStormAlert() {
         val risk = _stormRisk.value
         if (risk != null && (risk.isCurrentlyStormy || risk.isStormApproaching)) {

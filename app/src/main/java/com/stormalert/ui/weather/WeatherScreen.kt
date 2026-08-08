@@ -95,9 +95,6 @@ fun WeatherScreen(
                         message = (uiState as WeatherUiState.Error).message,
                         onRetry = {
                             viewModel.fetchWeatherWithCurrentLocation()
-                        },
-                        onUseDefaultLocation = {
-                            viewModel.fetchWeatherWithDefaultLocation()
                         }
                     )
                 }
@@ -164,8 +161,7 @@ fun PermissionRequestContent(
 @Composable
 fun ErrorContent(
     message: String,
-    onRetry: () -> Unit,
-    onUseDefaultLocation: () -> Unit = {}
+    onRetry: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -187,23 +183,8 @@ fun ErrorContent(
         )
         Spacer(modifier = Modifier.height(24.dp))
         
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(onClick = onRetry) {
-                Text("Retry")
-            }
-            
-            if (message.contains("location", ignoreCase = true)) {
-                Button(
-                    onClick = onUseDefaultLocation,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
-                ) {
-                    Text("Use Default Location")
-                }
-            }
+        Button(onClick = onRetry) {
+            Text("Retry")
         }
     }
 }
