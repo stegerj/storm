@@ -288,7 +288,11 @@ fun StormProbabilityCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text("Probability: ${(probability.probability * 100).toInt()}%")
-            Text("Confidence: ${probability.confidenceRange[0].toInt()}% - ${probability.confidenceRange[1].toInt()}%")
+            if (probability.confidenceRange.isNotEmpty() && probability.confidenceRange.size >= 2) {
+                Text("Confidence: ${probability.confidenceRange[0].toInt()}% - ${probability.confidenceRange[1].toInt()}%")
+            } else if (probability.confidenceRange.isNotEmpty()) {
+                Text("Confidence: ${probability.confidenceRange[0].toInt()}%")
+            }
             Text(
                 "Storm Approaching: ${if (probability.stormApproaching) "Yes" else "No"}",
                 color = if (probability.stormApproaching) {
@@ -310,7 +314,7 @@ fun RiskAnalysisCard(
             .fillMaxWidth()
             .padding(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = when (riskAnalysis.current.riskLevel.uppercase()) {
+            containerColor = when (riskAnalysis.current.riskLevel?.uppercase()) {
                 "CRITICAL", "HIGH" -> MaterialTheme.colorScheme.errorContainer
                 "MEDIUM" -> MaterialTheme.colorScheme.secondaryContainer
                 else -> MaterialTheme.colorScheme.surfaceVariant
@@ -344,8 +348,8 @@ fun RiskLevelRow(
     ) {
         Text(label)
         Text(
-            analysis.riskLevel.uppercase(),
-            color = when (analysis.riskLevel.uppercase()) {
+            analysis.riskLevel?.uppercase() ?: "UNKNOWN",
+            color = when (analysis.riskLevel?.uppercase()) {
                 "CRITICAL", "HIGH" -> MaterialTheme.colorScheme.error
                 "MEDIUM" -> MaterialTheme.colorScheme.secondary
                 else -> MaterialTheme.colorScheme.onSurface
@@ -373,8 +377,12 @@ fun ForecastDataCard(
             Spacer(modifier = Modifier.height(8.dp))
             Text("Avg Speed X: ${String.format("%.2f", forecastData.avgSpeedX)}")
             Text("Avg Speed Y: ${String.format("%.2f", forecastData.avgSpeedY)}")
-            Text("1h Forecast: (${String.format("%.1f", forecastData.forecast1h[0])}, ${String.format("%.1f", forecastData.forecast1h[1])})")
-            Text("5h Forecast: (${String.format("%.1f", forecastData.forecast5h[0])}, ${String.format("%.1f", forecastData.forecast5h[1])})")
+            if (forecastData.forecast1h.size >= 2) {
+                Text("1h Forecast: (${String.format("%.1f", forecastData.forecast1h[0])}, ${String.format("%.1f", forecastData.forecast1h[1])})")
+            }
+            if (forecastData.forecast5h.size >= 2) {
+                Text("5h Forecast: (${String.format("%.1f", forecastData.forecast5h[0])}, ${String.format("%.1f", forecastData.forecast5h[1])})")
+            }
             Text("Storm Centroids: ${forecastData.stormCentroids.size}")
         }
     }
