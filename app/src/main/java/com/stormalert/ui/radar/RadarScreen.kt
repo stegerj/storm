@@ -165,16 +165,44 @@ fun StormPredictionContent(
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        // Radar Image Display
+        // Radar Image Display with multiple variants
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                Text("Radar Image", style = MaterialTheme.typography.titleMedium)
+                Text("Radar Images", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
-                if (prediction?.radarImage != null && prediction.radarImage.isNotEmpty()) {
+                
+                // Use new radar_images field if available
+                if (prediction?.radarImages != null && prediction.radarImages.isNotEmpty()) {
+                    prediction.radarImages.forEach { variant ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            variant.description,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        val imageBytes = Base64.decode(variant.image, Base64.DEFAULT)
+                        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = variant.description,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp),
+                                contentScale = ContentScale.FillWidth
+                            )
+                        } else {
+                            Text("Failed to decode radar image", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                } 
+                // Fallback to old radar_image field for backward compatibility
+                else if (prediction?.radarImage != null && prediction.radarImage.isNotEmpty()) {
                     val imageBytes = Base64.decode(prediction.radarImage, Base64.DEFAULT)
                     val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
                     if (bitmap != null) {

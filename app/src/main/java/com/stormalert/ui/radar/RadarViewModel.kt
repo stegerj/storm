@@ -1,12 +1,15 @@
 package com.stormalert.ui.radar
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.stormalert.data.cache.ImageCache
 import com.stormalert.data.network.StormApiService
 import com.stormalert.data.network.StormPredictionRequest
 import com.stormalert.location.LocationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,8 +19,11 @@ import javax.inject.Inject
 @HiltViewModel
 class RadarViewModel @Inject constructor(
     private val stormApiService: StormApiService,
-    private val locationManager: LocationManager
+    private val locationManager: LocationManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
+    
+    private val imageCache = ImageCache(context)
     
     private val _uiState = MutableStateFlow<RadarUiState>(RadarUiState.Loading)
     val uiState: StateFlow<RadarUiState> = _uiState.asStateFlow()
@@ -47,7 +53,13 @@ class RadarViewModel @Inject constructor(
                 
                 if (response.isSuccessful && response.body() != null) {
                     val prediction = response.body()!!
-                    Log.d("RadarViewModel", "Prediction received, radarImage: ${prediction.radarImage != null}, stormProbability: ${prediction.stormProbability != null}")
+                    Log.d("RadarViewModel", "Prediction received, radarImage: ${prediction.radarImage != null}, radarImages: ${prediction.radarImages?.size}, stormProbability: ${prediction.stormProbability != null}")
+                    
+                    // Cache radar images if available
+                    prediction.radarImages?.forEach { variant ->
+                        imageCache.cacheImage(latitude, longitude, variant.mode, variant.image)
+                    }
+                    
                     _uiState.value = RadarUiState.Success(prediction)
                 } else {
                     Log.e("RadarViewModel", "API error: ${response.code()}")

@@ -172,14 +172,36 @@ async def predict_storm(
                                 storm_risk.estimated_time_to_storm = int(current_analysis.time_to_impact)
                     
                     # Generate radar image with overlays if requested
+                    radar_images = None
                     if request.include_radar_image:
                         async with RadarService() as radar_service:
-                            radar_image = await radar_service.generate_radar_image_with_overlays(
-                                request.latitude,
-                                request.longitude,
-                                movement_data,
-                                request.overlay_mode
-                            )
+                            # Generate multiple overlay variants
+                            overlay_modes = ["map", "radar", "all"]  # map, map+radar, map+radar+arrows
+                            radar_images = []
+                            
+                            for mode in overlay_modes:
+                                image_data = await radar_service.generate_radar_image_with_overlays(
+                                    request.latitude,
+                                    request.longitude,
+                                    movement_data,
+                                    mode
+                                )
+                                if image_data:
+                                    from app.models import RadarImageVariant
+                                    description = {
+                                        "map": "Simple map with location marker",
+                                        "radar": "Map with radar overlay",
+                                        "all": "Map with radar and storm forecast overlays"
+                                    }.get(mode, mode)
+                                    
+                                    radar_images.append(RadarImageVariant(
+                                        mode=mode,
+                                        image=image_data,
+                                        description=description
+                                    ))
+                            
+                            # For backward compatibility, set radar_image to the "all" variant
+                            radar_image = next((img.image for img in radar_images if img.mode == "all"), None)
         
         processing_time = (time.time() - start_time) * 1000
         
@@ -207,6 +229,7 @@ async def predict_storm(
             storm_risk=storm_risk,
             processing_time_ms=processing_time,
             radar_image=radar_image,
+            radar_images=radar_images,
             api_version=settings.app_version
         )
         
