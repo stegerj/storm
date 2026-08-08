@@ -1,18 +1,17 @@
 package com.stormalert.ui.radar
 
-import androidx.compose.foundation.Image
+import android.util.Log
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
 import android.util.Base64
 import android.graphics.BitmapFactory
@@ -27,6 +26,7 @@ fun RadarScreen(
     var selectedOverlayMode by remember { mutableStateOf("all") }
     
     LaunchedEffect(Unit) {
+        Log.d("RadarScreen", "RadarScreen initialized, loading storm prediction")
         viewModel.loadStormPredictionWithLocation()
     }
     
@@ -84,8 +84,22 @@ fun RadarScreen(
                 }
                 
                 is RadarUiState.Success -> {
-                    val prediction = (uiState as RadarUiState.Success).prediction
-                    StormPredictionContent(prediction)
+                    try {
+                        val prediction = (uiState as RadarUiState.Success).prediction
+                        Log.d("RadarScreen", "Success state, prediction: $prediction")
+                        StormPredictionContent(prediction)
+                    } catch (e: Exception) {
+                        Log.e("RadarScreen", "Error rendering StormPredictionContent", e)
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Error rendering content: ${e.message}",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -120,6 +134,8 @@ fun OverlayModeSelector(
 fun StormPredictionContent(
     prediction: com.stormalert.data.model.StormPredictionResponse?
 ) {
+    Log.d("StormPredictionContent", "StormPredictionContent called, prediction: ${prediction != null}")
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
