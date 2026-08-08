@@ -21,7 +21,6 @@ fun RadarScreen(
     viewModel: RadarViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val overlayMode by viewModel.overlayMode.collectAsState()
     
     var selectedOverlayMode by remember { mutableStateOf("all") }
     
