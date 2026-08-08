@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
@@ -427,7 +428,8 @@ fun StormAlertContent(
 
 @Composable
 fun HourlyForecastCard(hourlyData: HourlyData) {
-    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val hourFormat = remember { SimpleDateFormat("HH", Locale.getDefault()) }
     val hoursToShow = 24 // Show next 24 hours
     
     Card(
@@ -467,7 +469,7 @@ fun HourlyForecastCard(hourlyData: HourlyData) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            time?.let { SimpleDateFormat("HH", Locale.getDefault()).format(it) } ?: "N/A",
+                            time?.let { hourFormat.format(it) } ?: "N/A",
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -495,8 +497,9 @@ fun HourlyForecastCard(hourlyData: HourlyData) {
 
 @Composable
 fun DailyForecastCard(dailyData: DailyData) {
-    val dayFormat = SimpleDateFormat("EEE", Locale.getDefault())
-    val dateFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
+    val dayFormat = remember { SimpleDateFormat("EEE", Locale.getDefault()) }
+    val dateFormat = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
+    val inputDateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -515,7 +518,7 @@ fun DailyForecastCard(dailyData: DailyData) {
             
             dailyData.time.forEachIndexed { index, dateStr ->
                 val date = try {
-                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr)
+                    inputDateFormat.parse(dateStr)
                 } catch (e: Exception) {
                     null
                 }
@@ -604,7 +607,7 @@ fun DailyForecastCard(dailyData: DailyData) {
                 }
                 
                 if (index < dailyData.time.size - 1) {
-                    HorizontalDivider(
+                    Divider(
                         modifier = Modifier.padding(vertical = 4.dp),
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
