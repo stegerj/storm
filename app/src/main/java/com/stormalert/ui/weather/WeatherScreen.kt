@@ -19,8 +19,12 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.stormalert.data.model.getWeatherCondition
+import com.stormalert.data.model.HourlyData
+import com.stormalert.data.model.DailyData
 import com.stormalert.data.repository.StormRisk
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -247,6 +251,18 @@ fun WeatherContent(
         
         Spacer(modifier = Modifier.height(16.dp))
         
+        // Hourly Forecast
+        weatherData.hourly?.let { hourlyData ->
+            HourlyForecastCard(hourlyData)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        
+        // Daily Forecast
+        weatherData.daily?.let { dailyData ->
+            DailyForecastCard(dailyData)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        
         // Storm Risk Card with enhanced information
         stormRisk?.let { risk ->
             Card(
@@ -403,6 +419,195 @@ fun StormAlertContent(
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = onDismiss) {
                     Text("I Understand")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HourlyForecastCard(hourlyData: HourlyData) {
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val hoursToShow = 24 // Show next 24 hours
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                "24-Hour Forecast",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Horizontal scrollable hourly forecast
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                for (i in 0 until minOf(hoursToShow, hourlyData.time.size)) {
+                    val time = try {
+                        timeFormat.parse(hourlyData.time[i])
+                    } catch (e: Exception) {
+                        null
+                    }
+                    
+                    val temp = hourlyData.temperature?.get(i)
+                    val precipProb = hourlyData.precipitationProbability?.get(i)
+                    
+                    Column(
+                        modifier = Modifier.width(60.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            time?.let { SimpleDateFormat("HH", Locale.getDefault()).format(it) } ?: "N/A",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        temp?.let {
+                            Text(
+                                "${it.toInt()}°",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        precipProb?.let {
+                            Text(
+                                "${it}%",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (it > 50) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DailyForecastCard(dailyData: DailyData) {
+    val dayFormat = SimpleDateFormat("EEE", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                "7-Day Forecast",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            dailyData.time.forEachIndexed { index, dateStr ->
+                val date = try {
+                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr)
+                } catch (e: Exception) {
+                    null
+                }
+                
+                val weatherCode = dailyData.weatherCode.getOrNull(index)
+                val maxTemp = dailyData.temperatureMax.getOrNull(index)
+                val minTemp = dailyData.temperatureMin.getOrNull(index)
+                val precipProb = dailyData.precipitationProbabilityMax?.getOrNull(index)
+                val windSpeed = dailyData.windSpeedMax?.getOrNull(index)
+                val condition = weatherCode?.let { getWeatherCondition(it) }
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Day name
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            date?.let { dayFormat.format(it) } ?: "N/A",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            date?.let { dateFormat.format(it) } ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    // Weather condition
+                    Column(
+                        modifier = Modifier.weight(1.5f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            condition?.description ?: "Unknown",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    
+                    // Temperature range
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        minTemp?.let {
+                            Text(
+                                "${it.toInt()}°",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(" - ")
+                        maxTemp?.let {
+                            Text(
+                                "${it.toInt()}°",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    
+                    // Precipitation and wind
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        precipProb?.let {
+                            Text(
+                                "${it}%",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (it > 50) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        windSpeed?.let {
+                            Text(
+                                "${it.toInt()} km/h",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                
+                if (index < dailyData.time.size - 1) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
                 }
             }
         }
