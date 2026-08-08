@@ -129,64 +129,34 @@ fun StormPredictionContent(
             .padding(8.dp)
     ) {
         // Storm Probability Card
-        try {
-            StormProbabilityCard(prediction.stormProbability)
-        } catch (e: Exception) {
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Text(
-                    "Error loading storm probability: ${e.message}",
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
+        StormProbabilityCard(prediction.stormProbability)
         
         // Radar Image Display
         prediction.radarImage?.let { base64Image ->
-            try {
-                val bitmap = remember(base64Image) {
-                    try {
-                        val bytes = android.util.Base64.decode(base64Image, android.util.Base64.DEFAULT)
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    } catch (e: Exception) {
-                        bitmapError = "Failed to decode radar image: ${e.message}"
-                        null
-                    }
+            val bitmap = remember(base64Image) {
+                try {
+                    val bytes = android.util.Base64.decode(base64Image, android.util.Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                } catch (e: Exception) {
+                    bitmapError = "Failed to decode radar image: ${e.message}"
+                    null
                 }
-                
-                if (bitmap != null) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Image(
-                            bitmap = bitmap.asImageBitmap(),
-                            contentDescription = "Radar Image",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                } else {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Text(
-                            bitmapError ?: "Failed to load radar image",
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
+            }
+            
+            if (bitmap != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Radar Image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentScale = ContentScale.Fit
+                    )
                 }
-            } catch (e: Exception) {
+            } else {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -194,7 +164,7 @@ fun StormPredictionContent(
                     )
                 ) {
                     Text(
-                        "Error displaying radar image: ${e.message}",
+                        bitmapError ?: "Failed to load radar image",
                         modifier = Modifier.padding(16.dp),
                         color = MaterialTheme.colorScheme.error
                     )
@@ -204,42 +174,12 @@ fun StormPredictionContent(
         
         // Risk Analysis Card
         prediction.riskAnalysis?.let { riskAnalysis ->
-            try {
-                RiskAnalysisCard(riskAnalysis)
-            } catch (e: Exception) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        "Error loading risk analysis: ${e.message}",
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
+            RiskAnalysisCard(riskAnalysis)
         }
         
         // Forecast Data Card
         prediction.forecastData?.let { forecastData ->
-            try {
-                ForecastDataCard(forecastData)
-            } catch (e: Exception) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        "Error loading forecast data: ${e.message}",
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
+            ForecastDataCard(forecastData)
         }
     }
 }

@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
@@ -606,7 +607,7 @@ fun DailyForecastCard(dailyData: DailyData) {
                 }
                 
                 if (index < dailyData.time.size - 1) {
-                    HorizontalDivider(
+                    Divider(
                         modifier = Modifier.padding(vertical = 4.dp),
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
