@@ -149,23 +149,8 @@ fun StormPredictionContent(
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        // Storm Probability Card - with try-catch
-        try {
-            StormProbabilityCard(prediction.stormProbability)
-        } catch (e: Exception) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Text(
-                    "Error in StormProbabilityCard: ${e.message}",
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
+        // Storm Probability Card
+        StormProbabilityCard(prediction.stormProbability)
         
         Spacer(modifier = Modifier.height(8.dp))
         
@@ -187,44 +172,14 @@ fun StormPredictionContent(
             }
         }
         
-        // Risk Analysis Card - with try-catch
+        // Risk Analysis Card
         prediction.riskAnalysis?.let { riskAnalysis ->
-            try {
-                RiskAnalysisCard(riskAnalysis)
-            } catch (e: Exception) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        "Error in RiskAnalysisCard: ${e.message}",
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
+            RiskAnalysisCard(riskAnalysis)
         }
         
-        // Forecast Data Card - with try-catch
+        // Forecast Data Card
         prediction.forecastData?.let { forecastData ->
-            try {
-                ForecastDataCard(forecastData)
-            } catch (e: Exception) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        "Error in ForecastDataCard: ${e.message}",
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
+            ForecastDataCard(forecastData)
         }
     }
 }
