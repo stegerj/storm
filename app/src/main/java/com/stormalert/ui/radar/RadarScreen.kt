@@ -120,40 +120,13 @@ fun OverlayModeSelector(
 fun StormPredictionContent(
     prediction: com.stormalert.data.model.StormPredictionResponse
 ) {
-    var bitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
-    var bitmapError by remember { mutableStateOf<String?>(null) }
-    
-    // Debug info
-    val hasRadarImage = prediction.radarImage != null && prediction.radarImage.isNotEmpty()
-    val radarImageLength = prediction.radarImage?.length ?: 0
-    
-    // Load bitmap asynchronously to prevent UI freezing
-    LaunchedEffect(prediction.radarImage) {
-        if (hasRadarImage) {
-            isLoading = true
-            bitmapError = null
-            try {
-                val bytes = android.util.Base64.decode(prediction.radarImage, android.util.Base64.DEFAULT)
-                bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                if (bitmap == null) {
-                    bitmapError = "Failed to decode bitmap from base64 data (bytes: ${bytes.size})"
-                }
-            } catch (e: Exception) {
-                bitmapError = "Failed to decode radar image: ${e.message}"
-                bitmap = null
-            }
-            isLoading = false
-        }
-    }
-    
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(8.dp)
     ) {
-        // Debug info card
+        // Simple debug info first
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -164,55 +137,61 @@ fun StormPredictionContent(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    "API Response Info",
+                    "Debug Info",
                     style = MaterialTheme.typography.titleSmall
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Has radar image: $hasRadarImage", style = MaterialTheme.typography.bodySmall)
-                Text("Image data length: $radarImageLength", style = MaterialTheme.typography.bodySmall)
-                Text("Has risk analysis: ${prediction.riskAnalysis != null}", style = MaterialTheme.typography.bodySmall)
-                Text("Has forecast data: ${prediction.forecastData != null}", style = MaterialTheme.typography.bodySmall)
+                Text("Prediction loaded: true", style = MaterialTheme.typography.bodySmall)
+                Text("Has radar image: ${prediction.radarImage != null}", style = MaterialTheme.typography.bodySmall)
+                Text("Image length: ${prediction.radarImage?.length ?: 0}", style = MaterialTheme.typography.bodySmall)
             }
         }
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        // Storm Probability Card
-        StormProbabilityCard(prediction.stormProbability)
+        // Storm Probability Card - with try-catch
+        try {
+            StormProbabilityCard(prediction.stormProbability)
+        } catch (e: Exception) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Text(
+                    "Error in StormProbabilityCard: ${e.message}",
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
         
-        // Radar Image Display
-        if (hasRadarImage) {
-            if (isLoading) {
-                Card(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Loading radar image...")
-                        }
-                    }
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Radar Image Display - simplified
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text("Radar Image", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                if (prediction.radarImage != null && prediction.radarImage.isNotEmpty()) {
+                    Text("Image data available (length: ${prediction.radarImage.length})", style = MaterialTheme.typography.bodySmall)
+                    Text("Image decoding is disabled for debugging", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text("No radar image available from API", style = MaterialTheme.typography.bodySmall)
                 }
-            } else if (bitmap != null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Image(
-                        bitmap = bitmap!!.asImageBitmap(),
-                        contentDescription = "Radar Image",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-            } else {
+            }
+        }
+        
+        // Risk Analysis Card - with try-catch
+        prediction.riskAnalysis?.let { riskAnalysis ->
+            try {
+                RiskAnalysisCard(riskAnalysis)
+            } catch (e: Exception) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -220,45 +199,32 @@ fun StormPredictionContent(
                     )
                 ) {
                     Text(
-                        bitmapError ?: "Failed to load radar image",
+                        "Error in RiskAnalysisCard: ${e.message}",
                         modifier = Modifier.padding(16.dp),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
             }
-        } else {
-            // Show message when radar image is not available
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+        }
+        
+        // Forecast Data Card - with try-catch
+        prediction.forecastData?.let { forecastData ->
+            try {
+                ForecastDataCard(forecastData)
+            } catch (e: Exception) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
                 ) {
                     Text(
-                        "Radar Image",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "No radar image available from API",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        "Error in ForecastDataCard: ${e.message}",
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
-        }
-        
-        // Risk Analysis Card
-        prediction.riskAnalysis?.let { riskAnalysis ->
-            RiskAnalysisCard(riskAnalysis)
-        }
-        
-        // Forecast Data Card
-        prediction.forecastData?.let { forecastData ->
-            ForecastDataCard(forecastData)
         }
     }
 }
