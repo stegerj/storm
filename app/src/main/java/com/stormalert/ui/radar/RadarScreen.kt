@@ -184,7 +184,7 @@ fun StormPredictionContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(300.dp),
-                            contentScale = ContentScale.FitWidth
+                            contentScale = ContentScale.FillWidth
                         )
                     } else {
                         Text("Failed to decode radar image", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
