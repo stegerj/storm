@@ -443,6 +443,7 @@ fun StormAlertContent(
 fun HourlyForecastCard(hourlyData: HourlyData) {
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val hourFormat = remember { SimpleDateFormat("HH", Locale.getDefault()) }
+    val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault()) }
     val hoursToShow = 24 // Show next 24 hours
     
     Card(
@@ -469,17 +470,10 @@ fun HourlyForecastCard(hourlyData: HourlyData) {
             ) {
                 for (i in 0 until minOf(hoursToShow, hourlyData.time.size)) {
                     val timeStr = hourlyData.time[i]
-                    val time = try {
-                        // Try parsing with different formats
-                        if (timeStr.contains("T")) {
-                            // ISO format: 2024-08-08T12:00
-                            val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault()) }
-                            isoFormat.parse(timeStr)
-                        } else {
-                            timeFormat.parse(timeStr)
-                        }
-                    } catch (e: Exception) {
-                        null
+                    val time = if (timeStr.contains("T")) {
+                        isoFormat.parse(timeStr)
+                    } else {
+                        timeFormat.parse(timeStr)
                     }
                     
                     val temp = hourlyData.temperature?.get(i)
