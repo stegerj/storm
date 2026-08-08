@@ -198,7 +198,7 @@ fun WeatherContent(
     val scrollState = rememberScrollState()
     
     // Use enhanced current data if available, otherwise fall back to currentWeather
-    val currentData = weatherData.current ?: weatherData.currentWeather
+    val currentData = weatherData.current
     val temperature = currentData?.temperature ?: weatherData.currentWeather?.temperature ?: 0.0
     val weatherCode = currentData?.weatherCode ?: weatherData.currentWeather?.weatherCode ?: 0
     val windSpeed = currentData?.windSpeed10m ?: weatherData.currentWeather?.windSpeed ?: 0.0
@@ -243,13 +243,11 @@ fun WeatherContent(
                     Text("Wind: ${windSpeed.toInt()} km/h")
                     
                     // Show enhanced data if available
-                    currentData?.let { enhanced ->
+                    if (currentData != null) {
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Humidity: ${enhanced.relativeHumidity.toInt()}%")
-                        Text("Pressure: ${enhanced.pressureMsl.toInt()} hPa")
-                        enhanced.apparentTemperature.let {
-                            Text("Feels like: ${it.toInt()}°C")
-                        }
+                        Text("Humidity: ${currentData.relativeHumidity.toInt()}%")
+                        Text("Pressure: ${currentData.pressureMsl.toInt()} hPa")
+                        Text("Feels like: ${currentData.apparentTemperature.toInt()}°C")
                     }
                     
                     stormRisk?.let {
