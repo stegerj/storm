@@ -165,12 +165,11 @@ fun StormPredictionContent(
                     }
                 }
             } else if (bitmap != null) {
-                val bitmapValue = bitmap
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Image(
-                        bitmap = bitmapValue.asImageBitmap(),
+                        bitmap = bitmap!!.asImageBitmap(),
                         contentDescription = "Radar Image",
                         modifier = Modifier
                             .fillMaxWidth()
