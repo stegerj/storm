@@ -21,7 +21,6 @@ fun RadarScreen(
     viewModel: RadarViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val overlayMode by viewModel.overlayMode.collectAsState()
     
     var selectedOverlayMode by remember { mutableStateOf("all") }
     
@@ -120,7 +119,10 @@ fun StormPredictionContent(
     prediction: com.stormalert.data.model.StormPredictionResponse
 ) {
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(8.dp)
     ) {
         // Storm Probability Card
         StormProbabilityCard(prediction.stormProbability)
@@ -133,14 +135,18 @@ fun StormPredictionContent(
             }
             
             if (bitmap != null) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "Radar Image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentScale = ContentScale.Fit
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Radar Image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
         }
         

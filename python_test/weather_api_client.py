@@ -5,11 +5,33 @@ Calls the FastAPI service and recreates the output of weather_test.py
 
 import requests
 import json
+import time
+import urllib.request
 import base64
 import os
 from typing import Optional, Tuple
 from datetime import datetime
 from enum import Enum
+
+
+def get_location() -> Optional[Tuple[float, float, str]]:
+    """Get user's current location using IP geolocation"""
+    try:
+        # Use a free IP geolocation service
+        response = urllib.request.urlopen('http://ip-api.com/json/')
+        data = json.loads(response.read().decode('utf-8'))
+        
+        if data['status'] == 'success':
+            lat = data['lat']
+            lon = data['lon']
+            city = data.get('city', 'Unknown')
+            return (lat, lon, city)
+        else:
+            print(f"⚠️  Location API returned: {data.get('message', 'Unknown error')}")
+            return None
+    except Exception as e:
+        print(f"⚠️  Failed to get location: {str(e)}")
+        return None
 
 
 class WarningLevel(Enum):
@@ -346,12 +368,18 @@ def main():
     
     print()
     
-    # TODO: Replace with your actual location for testing
-    # Update these coordinates to your location
-    latitude = 51.5074  # REPLACE WITH YOUR LATITUDE
-    longitude = -0.1278  # REPLACE WITH YOUR LONGITUDE
-    city = "Your Location"  # REPLACE WITH YOUR CITY NAME
-    print(f"📍 Using location: {city} ({latitude}, {longitude})")
+    # Get user's actual location
+    print("📍 Getting your location...")
+    location_data = get_location()
+    if location_data:
+        latitude, longitude, city = location_data
+        print(f"📍 Using your location: {city} ({latitude}, {longitude})")
+    else:
+        # Fallback to default coordinates if location fetch fails
+        latitude = 51.5074  # London (fallback)
+        longitude = -0.1278
+        city = "London (fallback)"
+        print(f"⚠️  Could not get location, using fallback: {city} ({latitude}, {longitude})")
     
     # Test different overlay modes
     overlay_modes = ["map", "radar", "arrows", "all"]

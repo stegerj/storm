@@ -40,8 +40,8 @@ class StormRiskAnalyzer {
      * Analyze storm risk at multiple radii from user location
      */
     fun analyzeStormAtRadii(
-        userLat: Double,
-        userLon: Double,
+        @Suppress("UNUSED_PARAMETER") userLat: Double,
+        @Suppress("UNUSED_PARAMETER") userLon: Double,
         forecastData: ForecastData
     ): MultiRadiusAnalysis? {
         val centroids = forecastData.stormCentroids
@@ -86,7 +86,7 @@ class StormRiskAnalyzer {
         userX: Double,
         userY: Double,
         forecastData: ForecastData,
-        radiusKm: Double
+        @Suppress("UNUSED_PARAMETER") radiusKm: Double
     ): RiskAnalysis {
         // Calculate distance from storm to user
         val distancePixels = sqrt((stormX - userX).pow(2) + (stormY - userY).pow(2))
