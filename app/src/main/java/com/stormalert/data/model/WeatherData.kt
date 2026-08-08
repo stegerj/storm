@@ -188,6 +188,15 @@ fun getWeatherCondition(code: Int): WeatherCondition {
 }
 
 // FastAPI Storm Prediction Response Models
+data class RadarImageVariant(
+    @SerializedName("mode")
+    val mode: String,
+    @SerializedName("image")
+    val image: String,
+    @SerializedName("description")
+    val description: String
+)
+
 data class StormPredictionResponse(
     @SerializedName("latitude")
     val latitude: Double,
@@ -209,6 +218,8 @@ data class StormPredictionResponse(
     val riskAnalysis: MultiRadiusAnalysis?,
     @SerializedName("radar_image")
     val radarImage: String?,
+    @SerializedName("radar_images")
+    val radarImages: List<RadarImageVariant>?,
     @SerializedName("analysis_time")
     val analysisTime: String
 )

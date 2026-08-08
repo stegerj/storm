@@ -143,6 +143,13 @@ class StormPredictionRequest(BaseModel):
         return v
 
 
+class RadarImageVariant(BaseModel):
+    """Individual radar image variant"""
+    mode: str  # "map", "radar", "arrows", "all"
+    image: str  # Base64 encoded image
+    description: str
+
+
 class StormPredictionResponse(BaseModel):
     """Response model for storm prediction"""
     success: bool
@@ -150,7 +157,8 @@ class StormPredictionResponse(BaseModel):
     timestamp: str
     storm_risk: StormRisk
     processing_time_ms: float
-    radar_image: Optional[str] = None  # Base64 encoded radar image with overlays
+    radar_image: Optional[str] = None  # Base64 encoded radar image with overlays (deprecated, use radar_images)
+    radar_images: Optional[List[RadarImageVariant]] = None  # Multiple radar image variants
     api_version: str = "2.0.0"
 
 
