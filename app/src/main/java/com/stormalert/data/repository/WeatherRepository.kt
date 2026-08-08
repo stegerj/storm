@@ -30,9 +30,24 @@ class WeatherRepository @Inject constructor(
     
     fun analyzeStormRisk(weatherResponse: WeatherResponse): StormRisk {
         // Use enhanced current data if available, otherwise fall back to currentWeather
-        val currentData = weatherResponse.current ?: weatherResponse.currentWeather
-        val weatherCode = currentData?.weatherCode ?: weatherResponse.currentWeather?.weatherCode ?: 0
-        val windSpeed = currentData?.windSpeed10m ?: weatherResponse.currentWeather?.windSpeed ?: 0.0
+        val currentData = weatherResponse.current
+        val fallbackWeather = weatherResponse.currentWeather
+        
+        val weatherCode = if (currentData != null) {
+            currentData.weatherCode
+        } else if (fallbackWeather != null) {
+            fallbackWeather.weatherCode
+        } else {
+            0
+        }
+        
+        val windSpeed = if (currentData != null) {
+            currentData.windSpeed10m
+        } else if (fallbackWeather != null) {
+            fallbackWeather.windSpeed
+        } else {
+            0.0
+        }
         
         val currentCondition = getWeatherCondition(weatherCode)
         val isCurrentlyStormy = currentCondition.isStormy
