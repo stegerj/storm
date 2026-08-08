@@ -346,11 +346,12 @@ def main():
     
     print()
     
-    # Use a location with likely storm activity for testing
-    latitude = 25.7617  # Miami, Florida
-    longitude = -80.1918
-    city = "Miami"
-    print(f"📍 Using test location: {city} ({latitude}, {longitude})")
+    # TODO: Replace with your actual location for testing
+    # Update these coordinates to your location
+    latitude = 51.5074  # REPLACE WITH YOUR LATITUDE
+    longitude = -0.1278  # REPLACE WITH YOUR LONGITUDE
+    city = "Your Location"  # REPLACE WITH YOUR CITY NAME
+    print(f"📍 Using location: {city} ({latitude}, {longitude})")
     
     # Test different overlay modes
     overlay_modes = ["map", "radar", "arrows", "all"]
