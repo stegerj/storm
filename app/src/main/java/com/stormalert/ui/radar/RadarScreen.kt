@@ -124,14 +124,21 @@ fun StormPredictionContent(
     var isLoading by remember { mutableStateOf(false) }
     var bitmapError by remember { mutableStateOf<String?>(null) }
     
+    // Debug info
+    val hasRadarImage = prediction.radarImage != null && prediction.radarImage.isNotEmpty()
+    val radarImageLength = prediction.radarImage?.length ?: 0
+    
     // Load bitmap asynchronously to prevent UI freezing
     LaunchedEffect(prediction.radarImage) {
-        prediction.radarImage?.let { base64Image ->
+        if (hasRadarImage) {
             isLoading = true
             bitmapError = null
             try {
-                val bytes = android.util.Base64.decode(base64Image, android.util.Base64.DEFAULT)
+                val bytes = android.util.Base64.decode(prediction.radarImage, android.util.Base64.DEFAULT)
                 bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                if (bitmap == null) {
+                    bitmapError = "Failed to decode bitmap from base64 data (bytes: ${bytes.size})"
+                }
             } catch (e: Exception) {
                 bitmapError = "Failed to decode radar image: ${e.message}"
                 bitmap = null
@@ -146,11 +153,35 @@ fun StormPredictionContent(
             .verticalScroll(rememberScrollState())
             .padding(8.dp)
     ) {
+        // Debug info card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    "API Response Info",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Has radar image: $hasRadarImage", style = MaterialTheme.typography.bodySmall)
+                Text("Image data length: $radarImageLength", style = MaterialTheme.typography.bodySmall)
+                Text("Has risk analysis: ${prediction.riskAnalysis != null}", style = MaterialTheme.typography.bodySmall)
+                Text("Has forecast data: ${prediction.forecastData != null}", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
         // Storm Probability Card
         StormProbabilityCard(prediction.stormProbability)
         
         // Radar Image Display
-        if (prediction.radarImage != null) {
+        if (hasRadarImage) {
             if (isLoading) {
                 Card(
                     modifier = Modifier.fillMaxWidth()
@@ -161,7 +192,11 @@ fun StormPredictionContent(
                             .height(300.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Loading radar image...")
+                        }
                     }
                 }
             } else if (bitmap != null) {
@@ -188,6 +223,29 @@ fun StormPredictionContent(
                         bitmapError ?: "Failed to load radar image",
                         modifier = Modifier.padding(16.dp),
                         color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        } else {
+            // Show message when radar image is not available
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        "Radar Image",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "No radar image available from API",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
