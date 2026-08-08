@@ -7,12 +7,47 @@ data class WeatherResponse(
     val latitude: Double,
     @SerializedName("longitude")
     val longitude: Double,
+    @SerializedName("current")
+    val current: CurrentWeatherData? = null,
     @SerializedName("current_weather")
-    val currentWeather: CurrentWeather,
+    val currentWeather: CurrentWeather? = null,
     @SerializedName("hourly")
     val hourly: HourlyData? = null,
     @SerializedName("daily")
     val daily: DailyData? = null
+)
+
+data class CurrentWeatherData(
+    @SerializedName("temperature_2m")
+    val temperature: Double,
+    @SerializedName("relative_humidity_2m")
+    val relativeHumidity: Double,
+    @SerializedName("apparent_temperature")
+    val apparentTemperature: Double,
+    @SerializedName("is_day")
+    val isDay: Int,
+    @SerializedName("precipitation")
+    val precipitation: Double,
+    @SerializedName("rain")
+    val rain: Double,
+    @SerializedName("showers")
+    val showers: Double,
+    @SerializedName("snowfall")
+    val snowfall: Double,
+    @SerializedName("weather_code")
+    val weatherCode: Int,
+    @SerializedName("cloud_cover")
+    val cloudCover: Double,
+    @SerializedName("pressure_msl")
+    val pressureMsl: Double,
+    @SerializedName("surface_pressure")
+    val surfacePressure: Double,
+    @SerializedName("wind_speed_10m")
+    val windSpeed10m: Double,
+    @SerializedName("wind_direction_10m")
+    val windDirection10m: Double,
+    @SerializedName("time")
+    val time: String
 )
 
 data class CurrentWeather(
@@ -33,27 +68,95 @@ data class HourlyData(
     val time: List<String>,
     @SerializedName("temperature_2m")
     val temperature: List<Double>? = null,
+    @SerializedName("relative_humidity_2m")
+    val relativeHumidity: List<Double>? = null,
+    @SerializedName("dew_point_2m")
+    val dewPoint: List<Double>? = null,
+    @SerializedName("apparent_temperature")
+    val apparentTemperature: List<Double>? = null,
     @SerializedName("precipitation_probability")
     val precipitationProbability: List<Int>? = null,
     @SerializedName("precipitation")
     val precipitation: List<Double>? = null,
-    @SerializedName("windspeed_10m")
-    val windSpeed: List<Double>? = null
+    @SerializedName("rain")
+    val rain: List<Double>? = null,
+    @SerializedName("showers")
+    val showers: List<Double>? = null,
+    @SerializedName("snowfall")
+    val snowfall: List<Double>? = null,
+    @SerializedName("snow_depth")
+    val snowDepth: List<Double>? = null,
+    @SerializedName("weather_code")
+    val weatherCode: List<Int>? = null,
+    @SerializedName("cloud_cover")
+    val cloudCover: List<Double>? = null,
+    @SerializedName("cloud_cover_low")
+    val cloudCoverLow: List<Double>? = null,
+    @SerializedName("cloud_cover_mid")
+    val cloudCoverMid: List<Double>? = null,
+    @SerializedName("cloud_cover_high")
+    val cloudCoverHigh: List<Double>? = null,
+    @SerializedName("visibility")
+    val visibility: List<Double>? = null,
+    @SerializedName("evapotranspiration")
+    val evapotranspiration: List<Double>? = null,
+    @SerializedName("wind_speed_10m")
+    val windSpeed10m: List<Double>? = null,
+    @SerializedName("wind_speed_80m")
+    val windSpeed80m: List<Double>? = null,
+    @SerializedName("wind_direction_10m")
+    val windDirection10m: List<Double>? = null,
+    @SerializedName("wind_direction_80m")
+    val windDirection80m: List<Double>? = null,
+    @SerializedName("wind_gusts_10m")
+    val windGusts10m: List<Double>? = null,
+    @SerializedName("uv_index")
+    val uvIndex: List<Double>? = null
 )
 
 data class DailyData(
     @SerializedName("time")
     val time: List<String>,
-    @SerializedName("weathercode")
+    @SerializedName("weather_code")
     val weatherCode: List<Int>,
     @SerializedName("temperature_2m_max")
     val temperatureMax: List<Double>,
     @SerializedName("temperature_2m_min")
     val temperatureMin: List<Double>,
+    @SerializedName("apparent_temperature_max")
+    val apparentTemperatureMax: List<Double>? = null,
+    @SerializedName("apparent_temperature_min")
+    val apparentTemperatureMin: List<Double>? = null,
+    @SerializedName("sunrise")
+    val sunrise: List<String>? = null,
+    @SerializedName("sunset")
+    val sunset: List<String>? = null,
+    @SerializedName("daylight_duration")
+    val daylightDuration: List<Double>? = null,
+    @SerializedName("sunshine_duration")
+    val sunshineDuration: List<Double>? = null,
+    @SerializedName("uv_index_max")
+    val uvIndexMax: List<Double>? = null,
+    @SerializedName("uv_index_clear_sky_max")
+    val uvIndexClearSkyMax: List<Double>? = null,
+    @SerializedName("precipitation_sum")
+    val precipitationSum: List<Double>? = null,
+    @SerializedName("rain_sum")
+    val rainSum: List<Double>? = null,
+    @SerializedName("showers_sum")
+    val showersSum: List<Double>? = null,
+    @SerializedName("snowfall_sum")
+    val snowfallSum: List<Double>? = null,
+    @SerializedName("precipitation_hours")
+    val precipitationHours: List<Double>? = null,
     @SerializedName("precipitation_probability_max")
     val precipitationProbabilityMax: List<Int>? = null,
-    @SerializedName("windspeed_10m_max")
-    val windSpeedMax: List<Double>? = null
+    @SerializedName("wind_speed_10m_max")
+    val windSpeedMax: List<Double>? = null,
+    @SerializedName("wind_gusts_10m_max")
+    val windGustsMax: List<Double>? = null,
+    @SerializedName("wind_direction_10m_dominant")
+    val windDirectionDominant: List<Double>? = null
 )
 
 // Weather code interpretation

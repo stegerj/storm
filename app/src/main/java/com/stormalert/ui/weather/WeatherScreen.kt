@@ -196,7 +196,13 @@ fun WeatherContent(
     onCheckAlerts: () -> Unit
 ) {
     val scrollState = rememberScrollState()
-    val condition = getWeatherCondition(weatherData.currentWeather.weatherCode)
+    
+    // Use enhanced current data if available, otherwise fall back to currentWeather
+    val currentData = weatherData.current ?: weatherData.currentWeather
+    val temperature = currentData?.temperature ?: weatherData.currentWeather?.temperature ?: 0.0
+    val weatherCode = currentData?.weatherCode ?: weatherData.currentWeather?.weatherCode ?: 0
+    val windSpeed = currentData?.windSpeed10m ?: weatherData.currentWeather?.windSpeed ?: 0.0
+    val condition = getWeatherCondition(weatherCode)
     
     Column(
         modifier = Modifier
@@ -226,7 +232,7 @@ fun WeatherContent(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "${weatherData.currentWeather.temperature.toInt()}°C",
+                        "${temperature.toInt()}°C",
                         style = MaterialTheme.typography.headlineMedium
                     )
                     Text(
@@ -234,7 +240,18 @@ fun WeatherContent(
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Wind: ${weatherData.currentWeather.windSpeed.toInt()} km/h")
+                    Text("Wind: ${windSpeed.toInt()} km/h")
+                    
+                    // Show enhanced data if available
+                    currentData?.let { enhanced ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Humidity: ${enhanced.relativeHumidity.toInt()}%")
+                        Text("Pressure: ${enhanced.pressureMsl.toInt()} hPa")
+                        enhanced.apparentTemperature.let {
+                            Text("Feels like: ${it.toInt()}°C")
+                        }
+                    }
+                    
                     stormRisk?.let {
                         Text("Precipitation: ${it.precipitationProbability}%")
                     }
