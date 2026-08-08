@@ -1,6 +1,7 @@
 package com.stormalert.ui.radar
 
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
 import android.util.Base64
 import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.asImageBitmap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -163,7 +165,7 @@ fun StormPredictionContent(
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        // Radar Image Display - simplified
+        // Radar Image Display
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -173,8 +175,25 @@ fun StormPredictionContent(
                 Text("Radar Image", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 if (prediction?.radarImage != null && prediction.radarImage.isNotEmpty()) {
-                    Text("Image data available (length: ${prediction.radarImage.length})", style = MaterialTheme.typography.bodySmall)
-                    Text("Image decoding is disabled for debugging", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    try {
+                        val imageBytes = Base64.decode(prediction.radarImage, Base64.DEFAULT)
+                        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = asImageBitmap(bitmap),
+                                contentDescription = "Radar Image",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp),
+                                contentScale = ContentScale.FitWidth
+                            )
+                        } else {
+                            Text("Failed to decode radar image", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("StormPredictionContent", "Error decoding radar image", e)
+                        Text("Error decoding image: ${e.message}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
                 } else {
                     Text("No radar image available from API", style = MaterialTheme.typography.bodySmall)
                 }
